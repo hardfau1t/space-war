@@ -5,7 +5,12 @@
 
 use space_war as _;
 
-use space_war::types::Display;
+use space_war::{
+    types::Display,
+    game::Object,
+};
+
+use core::cell::RefCell;
 
 use rtic::app;
 
@@ -14,12 +19,6 @@ use stm32f7xx_hal::{
     i2c::{BlockingI2c, self},
 };
 
-use embedded_graphics::{
-    prelude::*,
-    fonts::{Font6x8, Text},
-    pixelcolor::BinaryColor,
-    style::TextStyleBuilder,
-};
 
 use ssd1306::{
     prelude::*,
@@ -32,7 +31,8 @@ mod app {
     use super::*;
     #[resources]
     struct Resources {
-        disp : Display,
+        disp : RefCell<Display>,
+        entities:[Object;2],
     }
     #[init]
     fn init(c : init::Context)->init::LateResources {
@@ -43,25 +43,25 @@ mod app {
         let clk = rcc.cfgr.sysclk(32.mhz()).freeze();
         let i2c_display = BlockingI2c::i2c2(c.device.I2C2, (scl, sda), i2c::Mode::FastPlus{ frequency: 400_000.hz() }, clk, &mut rcc.apb1, 999);
         let interface = I2CDIBuilder::new().init(i2c_display);
-        let mut disp: GraphicsMode<_> = Builder::new().connect(interface).into();
-        disp.init().expect("couldn't initiate display");
-        init::LateResources{ disp}
+        let disp: RefCell<GraphicsMode<_>>= RefCell::new(Builder::new().connect(interface).into());
+        disp.borrow_mut().init().expect("couldn't initiate display");
+
+        let entities = space_war::game_init();
+        init::LateResources{ disp, entities}
     }
 
 
-    #[idle(resources = [disp])]
-    fn idle(mut c : idle::Context)->!{
-        let text_style = TextStyleBuilder::new(Font6x8).text_color(BinaryColor::On).build();
-        c.resources.disp.lock(| disp:&mut Display |{
-            disp.clear(); 
-            Text::new("something smells new", Point::zero())
-                .into_styled(text_style)
-                .draw(disp).unwrap();
-            disp.flush().unwrap();
-        });
-        defmt::info!("idle");
-
-        space_war::exit();
+    #[idle(resources = [&disp, entities])]
+    fn idle( mut c: idle::Context)->!{
+        loop{
+            let disp = c.resources.disp;
+            c.resources.entities.lock(|[mut player, mut opponent]:&mut[Object;2]|{
+                space_war::game_update(&mut player, &mut opponent);
+                    space_war::game_draw(&mut player, &mut opponent, &mut disp.borrow_mut());
+            });
+            defmt::debug!("Exiting Succesfully");
+            space_war::exit();
+        }
     }
 }
 
