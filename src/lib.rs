@@ -4,6 +4,7 @@
 // import Section 
 pub mod types;
 pub mod game;
+pub mod objects;
 
 use game::Object;
 use core::sync::atomic::{AtomicUsize, Ordering};

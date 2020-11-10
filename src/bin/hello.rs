@@ -6,6 +6,7 @@
 use space_war as _;
 
 use space_war::types::Display;
+use space_war::objects::{ PLAYER_1, PLAYER_2 };
 
 use rtic::app;
 
@@ -65,14 +66,10 @@ mod app {
     fn idle(mut c : idle::Context)->!{
         let width = c.resources.width;
         let height = c.resources.height;
-        let byte_array_1 = [0x04, 0x00, 0x04, 0x00, 0x0e, 0x00, 0x1f, 0x00, 0x3f, 0x80, 0x7f, 0xc0, 0xee, 0xe0, 0x9f, 0x20, 0x35, 0x80, 0x20, 0x80];
-        let byte_array_2 = [0x04, 0x00, 0x04, 0x00, 0x0e, 0x00, 0x1f, 0x00, 0x3f, 0x80, 0x7f, 0xc0, 0xff, 0xe0, 0xff, 0xe0, 0x7f, 0xc0, 0x2e, 0x80];
-        let image_width = 11i32;
-        let image_height = 10i32;
-        let raw_1: ImageRaw<BinaryColor> = ImageRaw::new(&byte_array_1, image_width as u32, image_height as u32);
-        let raw_2: ImageRaw<BinaryColor> = ImageRaw::new(&byte_array_2, image_width as u32, image_height as u32);
-        let y = *height as i32 - image_height - 1;
-        let x = (*width as i32 / 2) - (image_width / 2) - 1;
+        let raw_1: ImageRaw<BinaryColor> = ImageRaw::new(PLAYER_1.data, PLAYER_1.width as u32, PLAYER_2.height as u32);
+        let raw_2: ImageRaw<BinaryColor> = ImageRaw::new(PLAYER_2.data, PLAYER_2.width as u32, PLAYER_2.height as u32);
+        let y = *height as i32 - PLAYER_1.height as i32 - 1;
+        let x = (*width as i32 / 2) - (PLAYER_1.width as i32 / 2) - 1;
         loop{
             c.resources.disp.lock(| disp:&mut Display |{
                 disp.clear(); 
