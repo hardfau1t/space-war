@@ -69,18 +69,26 @@ mod app {
         let byte_array_2 = [0x04, 0x00, 0x04, 0x00, 0x0e, 0x00, 0x1f, 0x00, 0x3f, 0x80, 0x7f, 0xc0, 0xff, 0xe0, 0xff, 0xe0, 0x7f, 0xc0, 0x2e, 0x80];
         let image_width = 11i32;
         let image_height = 10i32;
-        let raw: ImageRaw<BinaryColor> = ImageRaw::new(&byte_array_1, image_width as u32, image_height as u32);
+        let raw_1: ImageRaw<BinaryColor> = ImageRaw::new(&byte_array_1, image_width as u32, image_height as u32);
+        let raw_2: ImageRaw<BinaryColor> = ImageRaw::new(&byte_array_2, image_width as u32, image_height as u32);
         let y = *height as i32 - image_height - 1;
-        for x in 1..(*width as i32 -image_width){
+        let x = (*width as i32 / 2) - (image_width / 2) - 1;
+        loop{
             c.resources.disp.lock(| disp:&mut Display |{
                 disp.clear(); 
                 draw_rect(Point::zero(),Point::new((*width-1) as i32,(*height-1) as i32), disp);
                 // draw_rect(Point::new(118, 35), Point::new(126, 36), disp);
-                draw_image(x, y, &raw, disp );
+                draw_image(x, y, &raw_1, disp );
+                disp.flush().unwrap();
+            });
+            c.resources.disp.lock(| disp:&mut Display |{
+                disp.clear(); 
+                draw_rect(Point::zero(),Point::new((*width-1) as i32,(*height-1) as i32), disp);
+                // draw_rect(Point::new(118, 35), Point::new(126, 36), disp);
+                draw_image(x, y, &raw_2, disp );
                 disp.flush().unwrap();
             });
         }
-        space_war::exit();
     }
 }
 
