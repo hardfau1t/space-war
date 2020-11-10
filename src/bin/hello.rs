@@ -1,6 +1,6 @@
 #![no_main]
 #![no_std]
-
+#![allow(dead_code)]
 
 
 use space_war as _;
@@ -16,15 +16,23 @@ use stm32f7xx_hal::{
 
 use embedded_graphics::{
     prelude::*,
+    image::{
+        ImageRaw,
+        Image,
+    },
     fonts::{Font6x8, Text},
     pixelcolor::BinaryColor,
-    style::TextStyleBuilder,
+    style::{ PrimitiveStyle, TextStyleBuilder },
+    primitives::{
+        Rectangle,
+    },
 };
 
 use ssd1306::{
     prelude::*,
     I2CDIBuilder,
     Builder,
+    displayrotation::DisplayRotation,
 };
 
 #[app(device = stm32f7xx_hal::pac, peripherals=true)]
@@ -33,6 +41,8 @@ mod app {
     #[resources]
     struct Resources {
         disp : Display,
+        width:u8,
+        height:u8,
     }
     #[init]
     fn init(c : init::Context)->init::LateResources {
@@ -45,23 +55,57 @@ mod app {
         let interface = I2CDIBuilder::new().init(i2c_display);
         let mut disp: GraphicsMode<_> = Builder::new().connect(interface).into();
         disp.init().expect("couldn't initiate display");
-        init::LateResources{ disp}
+        disp.set_rotation(DisplayRotation::Rotate270).unwrap();
+        let (width, height) = disp.get_dimensions();
+        init::LateResources{ disp, width, height}
     }
 
 
-    #[idle(resources = [disp])]
+    #[idle(resources = [disp, &width, &height])]
     fn idle(mut c : idle::Context)->!{
-        let text_style = TextStyleBuilder::new(Font6x8).text_color(BinaryColor::On).build();
-        c.resources.disp.lock(| disp:&mut Display |{
-            disp.clear(); 
-            Text::new("something smells new", Point::zero())
-                .into_styled(text_style)
-                .draw(disp).unwrap();
-            disp.flush().unwrap();
-        });
-        defmt::info!("idle");
-
+        let width = c.resources.width;
+        let height = c.resources.height;
+        let byte_array_1 = [0x04, 0x00, 0x04, 0x00, 0x0e, 0x00, 0x1f, 0x00, 0x3f, 0x80, 0x7f, 0xc0, 0xee, 0xe0, 0x9f, 0x20, 0x35, 0x80, 0x20, 0x80];
+        let byte_array_2 = [0x04, 0x00, 0x04, 0x00, 0x0e, 0x00, 0x1f, 0x00, 0x3f, 0x80, 0x7f, 0xc0, 0xff, 0xe0, 0xff, 0xe0, 0x7f, 0xc0, 0x2e, 0x80];
+        let image_width = 11i32;
+        let image_height = 10i32;
+        let raw: ImageRaw<BinaryColor> = ImageRaw::new(&byte_array_1, image_width as u32, image_height as u32);
+        let y = *height as i32 - image_height - 1;
+        for x in 1..(*width as i32 -image_width){
+            c.resources.disp.lock(| disp:&mut Display |{
+                disp.clear(); 
+                draw_rect(Point::zero(),Point::new((*width-1) as i32,(*height-1) as i32), disp);
+                // draw_rect(Point::new(118, 35), Point::new(126, 36), disp);
+                draw_image(x, y, &raw, disp );
+                disp.flush().unwrap();
+            });
+        }
         space_war::exit();
     }
 }
 
+
+fn draw_rect(p1:Point, p2:Point, disp: &mut Display){
+    Rectangle::new(p1, p2)
+        .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
+        .draw(disp)
+        .unwrap();
+}
+
+fn draw_image(x:i32, y:i32, image:&ImageRaw<BinaryColor>, disp:&mut Display){
+
+
+    let im = Image::new(
+        image,
+        Point::new(x, y),
+        // Point::new((w/2) as i32 - (image_width/2) as i32 - 1, h as i32 - image_height as i32 -1),
+    );
+    im.draw(disp).unwrap();
+}
+
+fn draw_text(text:&str, disp:&mut Display){
+    let text_style = TextStyleBuilder::new(Font6x8).text_color(BinaryColor::On).build();
+    Text::new(text, Point::zero())
+        .into_styled(text_style)
+        .draw(disp).unwrap();
+}

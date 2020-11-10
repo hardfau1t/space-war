@@ -1,6 +1,7 @@
 #![no_std]
 #![feature(const_in_array_repeat_expressions)]
 
+// import Section 
 pub mod types;
 pub mod game;
 
@@ -16,9 +17,14 @@ use embedded_graphics::{
     pixelcolor::BinaryColor,
     primitives::Rectangle,
     style::PrimitiveStyle,
-    style::Styled,
+    // style::Styled,
     // drawable::Drawable,
 };
+
+// Constants
+pub const DISPLAY_WIDTH:u8 = 128;
+pub const DISPLAY_HEIGHT:u8 = 64;
+pub const FPS_LIMIT:u16      = 10;
 
 #[defmt::timestamp]
 fn timestamp() -> u64 {
@@ -36,10 +42,12 @@ pub fn exit() -> ! {
 }
 
 pub fn game_init()->[Object;2] {
-    let player_style:Styled<Rectangle, PrimitiveStyle<BinaryColor>> = Rectangle::new(Point::new(0, 28), Point::new(3, 36) ).into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1));
-    let opponent_style:Styled<Rectangle, PrimitiveStyle<BinaryColor>> = Rectangle::new(Point::new(124, 28), Point::new(127, 36) ).into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1));
-    let player = Object::new(123u8, 3u8, player_style);
-    let opponent = Object::new(3u8, 3u8, opponent_style);
+    let player_style = Rectangle::new(Point::new(1, 28), Point::new(3, 36) )
+        .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1));
+    let opponent_style = Rectangle::new(Point::new(124, 28), Point::new(126, 36) )
+        .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1));
+    let player = Object::new(123u8, 3u8,true, player_style);
+    let opponent = Object::new(3u8, 3u8, false, opponent_style);
     [player, opponent]
 }
 
