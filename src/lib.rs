@@ -84,15 +84,15 @@ pub fn exit() -> ! {
 pub fn game_init()->Object{
     // start the player in center 
     let player = Object::new(
-        DISPLAY_WIDTH/2 - PLAYER_1.width/2 +1, 
-        DISPLAY_HEIGHT - PLAYER_1.height - 1, // -1 for border
+        (DISPLAY_WIDTH/2 - PLAYER_1.width/2 +1)as i8, 
+        (DISPLAY_HEIGHT - PLAYER_1.height - 1) as i8, // -1 for border
         true,
         &PLAYER_1);
     player
 }
 
 pub fn game_update(object: &mut Object) {
-    object.set_pos(object.get_pos().0 +1, object.get_pos().1);
+    object.set_pos(object.get_pos().0 +object.vel_x, object.get_pos().1 + object.vel_y);
 }
 
 pub fn game_draw(object: &Object, disp: &mut types::Display) {

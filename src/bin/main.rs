@@ -8,6 +8,7 @@ use space_war as _;
 use space_war::{
     types::Display,
     game::Object,
+    game::Shooter,
 };
 
 use core::cell::RefCell;
@@ -82,16 +83,23 @@ mod app {
             ))
             .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1));
         let mut display = c.resources.disp.replace(None).unwrap();
-        // let mut delay = c.resources.delay;
-        c.resources.player.lock(|player:&mut Object|{
-            space_war::game_update(player);
-                space_war::game_draw(&player, &mut display);
+        let mut delay = c.resources.delay;
+        let mut bullet:Object = c.resources.player.lock(|player:&mut Object|{
+            player.shoot()
         });
-        border.draw(&mut display).unwrap();
-        display.flush().unwrap();
-        // delay.lock(|delay|{
-        //     delay.delay_ms(1000/space_war::FPS_LIMIT);
-        // });
-        space_war::exit();
+        loop{
+            display.clear();
+            c.resources.player.lock(|player:&mut Object|{
+                space_war::game_update(player);
+                space_war::game_draw(&player, &mut display);
+            });
+            space_war::game_update(&mut bullet);
+            space_war::game_draw(&bullet, &mut display);
+            border.draw(&mut display).unwrap();
+            display.flush().unwrap();
+            delay.lock(|delay|{
+                delay.delay_ms(1000/space_war::FPS_LIMIT);
+            });
+        }
     }
 }
