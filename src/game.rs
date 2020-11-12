@@ -67,7 +67,7 @@ impl Shooter for Object{
             sprite_height: BULLET.height,
             sprite_width : BULLET.width,
             vel_x: 0,                   // velocity in x is 0 for every bullet
-            vel_y: (1 - (self.friendly as i32)*2 ) as i8, // if friendly then vel_y is -ve
+            vel_y: (1 - (self.friendly as i32)*2 ) as i8*4, // if friendly then vel_y is -ve
             raw_image
         }
     }

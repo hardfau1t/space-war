@@ -83,7 +83,7 @@ mod app {
             ))
             .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1));
         let mut display = c.resources.disp.replace(None).unwrap();
-        let mut delay = c.resources.delay;
+        // let mut delay = c.resources.delay;
         let mut bullet:Object = c.resources.player.lock(|player:&mut Object|{
             player.shoot()
         });
@@ -97,9 +97,9 @@ mod app {
             space_war::game_draw(&bullet, &mut display);
             border.draw(&mut display).unwrap();
             display.flush().unwrap();
-            delay.lock(|delay|{
-                delay.delay_ms(1000/space_war::FPS_LIMIT);
-            });
+            // delay.lock(|delay|{
+            //     delay.delay_ms(1000/space_war::FPS_LIMIT);
+            // });
         }
     }
 }
