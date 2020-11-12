@@ -1,14 +1,12 @@
 // import Section 
-use crate::types::Display;
+use crate::{
+    types::Display,
+    objects::Sprite,
+};
 use embedded_graphics::{
-    // prelude::*,
+    prelude::*,
     pixelcolor::BinaryColor,
-    primitives::Rectangle,
-    style::{
-        PrimitiveStyle,
-        Styled,
-    },
-    // pixelcolor::PixelColor,
+    image::{Image, ImageRaw},
     drawable::Drawable,
 };
 
@@ -20,7 +18,7 @@ pub struct Object {
     friendly:bool,
     vel_x:i8,
     vel_y:i8,
-    style:Styled<Rectangle, PrimitiveStyle<BinaryColor>>,
+    raw_image: ImageRaw<'static, BinaryColor>,
 }
 
 // Traits Definitions Section
@@ -35,11 +33,13 @@ pub trait Shooter{
 }
 // implementation Section
 impl Object{
-    pub fn new(x:u8, y:u8, friendly:bool, style:Styled<Rectangle, PrimitiveStyle<BinaryColor>>)->Self{
-        Self{ x, y, friendly, vel_x:0, vel_y:0, style}
+    pub fn new(x:u8, y:u8, friendly:bool, sprite: &Sprite)->Self{
+        let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
+        Self{ x, y, friendly, vel_x:0, vel_y:0, raw_image}
     }
     pub fn draw(&self, disp:&mut Display){
-        self.style.draw(disp).unwrap();
+        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
+        image.draw(disp).unwrap();
     }
 }
 

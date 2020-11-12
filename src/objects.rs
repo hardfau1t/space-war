@@ -15,3 +15,15 @@ pub static PLAYER_2 : Sprite = Sprite{
     width   :   11,
     height  :   10,
 };
+
+// pub static BULLET : Sprite = Sprite{
+//     data    : &[0x70, 0xf8, 0xf8, 0xf8, 0x70],
+//     width   : 5,
+//     height  :5
+// };
+
+pub static BULLET : Sprite = Sprite{
+    data    : &[0x40, 0xe0, 0xe0],
+    width   : 3,
+    height  :3
+};

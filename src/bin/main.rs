@@ -39,8 +39,8 @@ mod app {
     use super::*;
     #[resources]
     struct Resources {
-        disp : RefCell<Display>,
-        entities:[Object;2],
+        disp : RefCell<Option<Display>>,
+        player:Object,
         delay: Delay,
     }
     #[init]
@@ -60,40 +60,38 @@ mod app {
         let interface = I2CDIBuilder::new().init(i2c_display);
         let mut disp:GraphicsMode<_>= Builder::new().connect(interface).into();
         disp.init().expect("couldn't initiate display");
+        disp.set_rotation(DisplayRotation::Rotate270).unwrap();
 
-        // adding background border
-        Rectangle::new(
+
+        // Used RefCell due to RTIC currently doesn't impliments double object lock at a time
+        let disp = RefCell::new(Some(disp));
+
+        let player = space_war::game_init();
+        init::LateResources{ disp, player, delay}
+    }
+
+
+
+    #[idle(resources = [&disp, player, delay])]
+    fn idle( mut c: idle::Context)->!{
+        // it is the border of display
+        let border = Rectangle::new(
             Point::zero(), Point::new(
                 (space_war::DISPLAY_WIDTH - 1 ) as i32,
                 (space_war::DISPLAY_HEIGHT - 1) as i32
             ))
-            .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
-            .draw(&mut disp).unwrap();
-
-        // Used RefCell due to RTIC currently doesn't impliments double object lock at a time
-        let disp = RefCell::new(disp);
-
-        let entities = space_war::game_init();
-        init::LateResources{ disp, entities, delay}
-    }
-
-
-    #[idle(resources = [&disp, entities, delay])]
-    fn idle( mut c: idle::Context)->!{
-        let disp = c.resources.disp;
-        let mut delay = c.resources.delay;
-        let mut cntr = 0;
-        loop{
-            c.resources.entities.lock(|[mut player, mut opponent]:&mut[Object;2]|{
-                space_war::game_update(&mut player, &mut opponent);
-                    space_war::game_draw(&player, &opponent, &mut disp.borrow_mut());
-            });
-            delay.lock(|delay|{
-                delay.delay_ms(1000/space_war::FPS_LIMIT);
-            });
-            defmt::debug!(" frame number {:?}",  cntr);
-            cntr +=1;
-        }
+            .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1));
+        let mut display = c.resources.disp.replace(None).unwrap();
+        // let mut delay = c.resources.delay;
+        c.resources.player.lock(|player:&mut Object|{
+            space_war::game_update(player);
+                space_war::game_draw(&player, &mut display);
+        });
+        border.draw(&mut display).unwrap();
+        display.flush().unwrap();
+        // delay.lock(|delay|{
+        //     delay.delay_ms(1000/space_war::FPS_LIMIT);
+        // });
+        space_war::exit();
     }
 }
-
