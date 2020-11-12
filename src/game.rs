@@ -60,7 +60,7 @@ impl Shooter for Object{
     fn shoot(&self)->Self{
         let raw_image = ImageRaw::new(BULLET.data, BULLET.width as u32, BULLET.height as u32);
         Self{
-            x:self.x + self.sprite_width as i8/2 + BULLET.width as i8/2,
+            x:self.x + self.sprite_width as i8/2 - BULLET.width as i8/2,
             // if object is friendly then y = y - bullet height else y = y+bullet height;
             y: self.y - ((self.friendly as i8)*2 - 1)*BULLET.height as i8, // workaround for branchless if
             friendly: self.friendly,
