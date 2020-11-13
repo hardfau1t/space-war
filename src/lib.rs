@@ -38,29 +38,29 @@ pub const FPS_LIMIT:u16      = 10;
 /// instead of detaching old node and attaching new node as head and attaching old
 /// node as next, we simply attach linked list to the new_node as next.
 /// problem with this approch is we will get different linked list each time we push a node.
-pub struct Node<'a>{
-    object: Object,
-    next: Option<&'a Node<'a>>,
+pub struct Node<'a, T: Object>{
+    object: T,
+    next: Option<&'a Node<'a, T>>,
 }
 
-impl<'a> Node<'a>{
+impl<'a, T:Object> Node<'a, T>{
     // instead of pushing new node to linked list we are linking old head to new node
     /// this will link the list to new node. use new node as head
-    pub fn link(& mut self, node:&'a Node<'a>){
+    pub fn link(& mut self, node:&'a Node<'a, T>){
         self.next = Some(node)
     }
     /// return reference to object for read
-    pub fn peek(&self)->&Object{
+    pub fn peek(&self)->&impl Object{
         &self.object
     }
     /// returns a mutable reference to object for modifieng
-    pub fn as_mut(&mut self)->&mut Object{
+    pub fn as_mut(&mut self)->&mut impl Object{
         &mut self.object
     }
 }
 
-impl<'a> Iterator for Node<'a>{
-    type Item = Object;
+impl<'a, T:Object> Iterator for Node<'a, T>{
+    type Item = T;
     fn next(&mut self) -> Option<Self::Item> {
         todo!()
     }
@@ -81,20 +81,11 @@ pub fn exit() -> ! {
     }
 }
 
-pub fn game_init()->Object{
+pub fn game_init()->Player{
     // start the player in center 
-    let player = Object::new(
+    Player::new(
         (DISPLAY_WIDTH/2 - PLAYER_1.width/2 +1)as i8, 
         (DISPLAY_HEIGHT - PLAYER_1.height - 1) as i8, // -1 for border
-        true,
-        &PLAYER_1);
-    player
-}
-
-pub fn game_update(object: &mut Object) {
-    object.set_pos(object.get_pos().0 +object.vel_x, object.get_pos().1 + object.vel_y);
-}
-
-pub fn game_draw(object: &Object, disp: &mut types::Display) {
-    object.draw(disp);
+        &PLAYER_1
+    )
 }

@@ -12,10 +12,9 @@ use embedded_graphics::{
 
 // Structs definitions
 #[derive(Debug, Copy, Clone)]
-pub struct Object {
+pub struct Player {
     x:i8,
     y:i8,
-    friendly:bool,
     pub vel_x:i8,
     pub vel_y:i8,
     sprite_width:u8,
@@ -23,21 +22,56 @@ pub struct Object {
     raw_image: ImageRaw<'static, BinaryColor>,
 }
 
-// Traits Definitions Section
-pub trait Position{
+#[derive(Debug, Copy, Clone)]
+pub struct Enemy {
+    x:i8,
+    y:i8,
+    pub vel_x:i8,
+    pub vel_y:i8,
+    sprite_width:u8,
+    sprite_height:u8,
+    raw_image: ImageRaw<'static, BinaryColor>,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Bullet {
+    x:i8,
+    y:i8,
+    friendly:bool,
+    pub vel_y:i8,       // no need of x vel, they will always move in straight line
+    sprite_width:u8,
+    sprite_height:u8,
+    raw_image: ImageRaw<'static, BinaryColor>,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Asteroids {
+    x:i8,
+    y:i8,
+    pub vel_x:i8,
+    pub vel_y:i8,
+    sprite_width:u8,
+    sprite_height:u8,
+    raw_image: ImageRaw<'static, BinaryColor>,
+}
+// Object struct is to group all objects like player bullets, enemy
+
+pub trait Object{
     fn get_pos(&self)->(i8,i8);
     fn set_pos(&mut self, x:i8, y:i8);
+    fn update(&mut self);
+    fn draw(&self, disp:&mut Display);
 }
 
 pub trait Shooter{
-    // Creates a bullet which is also an Object
-    fn shoot(&self)->Self;
+    // Creates a bullet which is also an Player
+    fn shoot(&self)->Bullet;
 }
 // implementation Section
-impl Object{
-    pub fn new(x:i8, y:i8, friendly:bool, sprite: &Sprite)->Self{
+impl Player{
+    pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
-        Self{ x, y, friendly, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image}
+        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image}
     }
     pub fn draw(&self, disp:&mut Display){
         let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
@@ -45,7 +79,40 @@ impl Object{
     }
 }
 
-impl Position for Object {
+impl Enemy{
+    pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
+        let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
+        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image}
+    }
+    pub fn draw(&self, disp:&mut Display){
+        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
+        image.draw(disp).unwrap();
+    }
+}
+
+// no new function for bullet. 
+// it should be created using shoot
+impl Bullet{
+    pub fn draw(&self, disp:&mut Display){
+        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
+        image.draw(disp).unwrap();
+    }
+}
+
+impl Asteroids{
+    pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
+        let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
+        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image}
+    }
+    pub fn draw(&self, disp:&mut Display){
+        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
+        image.draw(disp).unwrap();
+    }
+}
+
+// these implementations are later changed into macros, currently for simplicity it is implimented
+// for every object
+impl Object for Player {
     fn get_pos(&self)->(i8, i8){
         (self.x, self.y)
     }
@@ -54,20 +121,97 @@ impl Position for Object {
         self.x = x;
         self.y = y;
     }
+    fn draw(&self, disp:&mut Display) {
+        self.draw(disp)
+    }
+
+    fn update(&mut self) {
+        self.set_pos(self.get_pos().0 +self.vel_x, self.get_pos().1 + self.vel_y);
+    }
 }
 
-impl Shooter for Object{
-    fn shoot(&self)->Self{
+impl Object for Enemy {
+    fn get_pos(&self)->(i8, i8){
+        (self.x, self.y)
+    }
+
+    fn set_pos(&mut self, x:i8, y:i8){
+        self.x = x;
+        self.y = y;
+    }
+    fn draw(&self, disp:&mut Display) {
+        self.draw(disp)
+    }
+
+    fn update(&mut self) {
+        self.set_pos(self.get_pos().0 +self.vel_x, self.get_pos().1 + self.vel_y);
+    }
+}
+
+impl Object for Bullet {
+    fn get_pos(&self)->(i8, i8){
+        (self.x, self.y)
+    }
+
+    fn set_pos(&mut self, x:i8, y:i8){
+        self.x = x;
+        self.y = y;
+    }
+    fn draw(&self, disp:&mut Display) {
+        self.draw(disp)
+    }
+
+    fn update(&mut self) {
+        self.set_pos(self.x, self.get_pos().1 + self.vel_y);
+    }
+}
+
+impl Object for Asteroids {
+    fn get_pos(&self)->(i8, i8){
+        (self.x, self.y)
+    }
+
+    fn set_pos(&mut self, x:i8, y:i8){
+        self.x = x;
+        self.y = y;
+    }
+    fn draw(&self, disp:&mut Display) {
+        self.draw(disp)
+    }
+
+    fn update(&mut self) {
+        self.set_pos(self.get_pos().0 +self.vel_x, self.get_pos().1 + self.vel_y);
+    }
+}
+
+
+impl Shooter for Player{
+    fn shoot(&self)->Bullet{
         let raw_image = ImageRaw::new(BULLET.data, BULLET.width as u32, BULLET.height as u32);
-        Self{
+        Bullet{
             x:self.x + self.sprite_width as i8/2 - BULLET.width as i8/2,
             // if object is friendly then y = y - bullet height else y = y+bullet height;
-            y: self.y - ((self.friendly as i8)*2 - 1)*BULLET.height as i8, // workaround for branchless if
-            friendly: self.friendly,
+            y: self.y - BULLET.height as i8, 
+            friendly: true,
             sprite_height: BULLET.height,
             sprite_width : BULLET.width,
-            vel_x: 0,                   // velocity in x is 0 for every bullet
-            vel_y: (1 - (self.friendly as i32)*2 ) as i8*4, // if friendly then vel_y is -ve
+            vel_y: -1, // if friendly then vel_y is -ve
+            raw_image
+        }
+    }
+}
+
+impl Shooter for Enemy{
+    fn shoot(&self)->Bullet{
+        let raw_image = ImageRaw::new(BULLET.data, BULLET.width as u32, BULLET.height as u32);
+        Bullet{
+            x:self.x + self.sprite_width as i8/2 - BULLET.width as i8/2,
+            // if object is friendly then y = y - bullet height else y = y+bullet height;
+            y: self.y + BULLET.height as i8, 
+            friendly: false,
+            sprite_height: BULLET.height,
+            sprite_width : BULLET.width,
+            vel_y: 1, // if friendly then vel_y is -ve
             raw_image
         }
     }

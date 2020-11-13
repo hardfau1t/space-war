@@ -7,8 +7,7 @@ use space_war as _;
 
 use space_war::{
     types::Display,
-    game::Object,
-    game::Shooter,
+    game::*,
 };
 
 use core::cell::RefCell;
@@ -41,7 +40,7 @@ mod app {
     #[resources]
     struct Resources {
         disp : RefCell<Option<Display>>,
-        player:Object,
+        player:Player,
         delay: Delay,
     }
     #[init]
@@ -84,17 +83,17 @@ mod app {
             .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1));
         let mut display = c.resources.disp.replace(None).unwrap();
         // let mut delay = c.resources.delay;
-        let mut bullet:Object = c.resources.player.lock(|player:&mut Object|{
+        let mut bullet:Bullet = c.resources.player.lock(|player:&mut Player|{
             player.shoot()
         });
         loop{
             display.clear();
-            c.resources.player.lock(|player:&mut Object|{
-                space_war::game_update(player);
-                space_war::game_draw(&player, &mut display);
+            c.resources.player.lock(|player:&mut Player|{
+                player.update();
+                player.draw(&mut display);
             });
-            space_war::game_update(&mut bullet);
-            space_war::game_draw(&bullet, &mut display);
+            bullet.update();
+            bullet.draw(&mut display);
             border.draw(&mut display).unwrap();
             display.flush().unwrap();
             // delay.lock(|delay|{
