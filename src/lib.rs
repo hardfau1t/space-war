@@ -9,10 +9,11 @@ pub mod objects;
 
 use core::{
     sync::atomic::{AtomicUsize, Ordering},
-    iter::Iterator,
+    cell::{RefCell, Ref, RefMut},
 };
 use game::* ;
 use objects::*;
+use types::*;
 
 use defmt_rtt as _; // global logger
 use panic_probe as _;
@@ -38,33 +39,69 @@ pub const FPS_LIMIT:u16      = 10;
 /// instead of detaching old node and attaching new node as head and attaching old
 /// node as next, we simply attach linked list to the new_node as next.
 /// problem with this approch is we will get different linked list each time we push a node.
-pub struct Node<'a, T: Object>{
-    object: T,
+pub struct Node<'a,T: Object>{
+    object: RefCell<T>,
     next: Option<&'a Node<'a, T>>,
 }
 
 impl<'a, T:Object> Node<'a, T>{
-    // instead of pushing new node to linked list we are linking old head to new node
-    /// this will link the list to new node. use new node as head
-    pub fn link(& mut self, node:&'a Node<'a, T>){
-        self.next = Some(node)
+    pub fn new(obj:T, next:Option<&'a Node<'a, T>>)->Self{
+        Node{
+            object:RefCell::new(obj),
+            next
+        }
     }
-    /// return reference to object for read
-    pub fn peek(&self)->&impl Object{
-        &self.object
+    pub fn peek(&self)->Ref<T>{
+        self.object.borrow()
     }
-    /// returns a mutable reference to object for modifieng
-    pub fn as_mut(&mut self)->&mut impl Object{
-        &mut self.object
+
+    pub fn next(&self)->Option<&Node<'a, T>>{
+        self.next
+    }
+
+    pub fn as_mut(&self)->RefMut<T>{
+        self.object.borrow_mut()
     }
 }
 
-impl<'a, T:Object> Iterator for Node<'a, T>{
-    type Item = T;
-    fn next(&mut self) -> Option<Self::Item> {
-        todo!()
-    }
+pub struct List<'a, T:Object>{
+    pub head:Option<&'a Node<'a, T>>
 }
+impl<'a, T:Object> List<'a, T>{
+    // instead of pushing new node to linked list we are linking old head to new node
+    /// this will link the list to new node. use new node as head
+    pub fn new()->Self{
+        Self{
+            head:None,
+        }
+    }
+
+    pub fn push(&mut self, node: &'a Node<'a, T>){
+        self.head = Some(node)
+    }
+    // / return reference to object for read
+    
+    pub fn update(&mut self){
+        while let Some(node) = self.head{
+            node.as_mut().update();
+        }
+    }
+    pub fn draw(&mut self, disp:&mut Display){
+        while let Some(node) = self.head{
+            node.as_mut().draw(disp);
+        }
+    }
+
+}
+// impl<'a, T: Object> Iterator for Node<'a, T>{
+//     type Item = &'a mut T;
+//     fn next(&mut self) -> Option<Self::Item> {
+//         match self.next{
+//             Some(&node)=> Some(&mut node.object),
+//             None => None,
+//         }
+//     }
+// }
 
 #[defmt::timestamp]
 fn timestamp() -> u64 {
@@ -89,3 +126,4 @@ pub fn game_init()->Player{
         &PLAYER_1
     )
 }
+

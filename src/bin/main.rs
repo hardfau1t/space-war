@@ -8,6 +8,9 @@ use space_war as _;
 use space_war::{
     types::Display,
     game::*,
+    objects::*,
+    Node,
+    List,
 };
 
 use core::cell::RefCell;
@@ -83,17 +86,40 @@ mod app {
             .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1));
         let mut display = c.resources.disp.replace(None).unwrap();
         // let mut delay = c.resources.delay;
-        let mut bullet:Bullet = c.resources.player.lock(|player:&mut Player|{
-            player.shoot()
-        });
+        let mut enemies:space_war::List<'_, Enemy> = List::new() ;
+        let mut bullets = List::new();
+        let asteroids:Option<Node<Asteroids>> = None;
+        let enemies_count = 5;
+
+
+        // bullets creation
+        // TODO: later it should be replaced with macros
+        let bullet = &Node::new(
+            c.resources.player.lock(|player:&mut Player|{
+                player.shoot()
+            }),
+            bullets.head.take(),
+        );
+        bullets.push(
+            bullet
+        );
         loop{
             display.clear();
             c.resources.player.lock(|player:&mut Player|{
                 player.update();
                 player.draw(&mut display);
             });
-            bullet.update();
-            bullet.draw(&mut display);
+
+            
+            // bullet.update();
+            bullets.update();
+            enemies.update();
+            // while let Some
+            // for e in enemy{
+            //     e.update();
+            // }
+            bullets.draw(&mut display);
+            enemies.draw(&mut display);
             border.draw(&mut display).unwrap();
             display.flush().unwrap();
             // delay.lock(|delay|{
