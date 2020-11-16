@@ -96,6 +96,53 @@ impl GameObject{
             let index = index - removed;
             self.bullets[index].boundary_check();
             self.bullets[index].update();
+
+            // check if it is hitting anyone.
+            let (x1, y1) = self.bullets[index].get_pos();
+            let (x2, y2) = self.bullets[index].get_corner();
+            if self.bullets[index].friendly{
+                let mut killed = false;
+                for i in 0..self.enemies.len(){
+                    let (x3, y3) = self.enemies[i].get_pos();
+                    let (x4, y4) = self.enemies[i].get_corner();
+                    // here we are making some assumption
+                    // *) x1 is always less than x2 because & x3 is always < x4 
+                    //      because x1 & x3 are used as origin points for objects and we are not
+                    //      drawing outside of display
+                    // *) same for y
+                    // check if object is active because objects that are killed wont go away until
+                    // next frame
+                    if !(x3>x2 || x1 > x4 ||  y1 > y4 || y3 > y2) && self.enemies[i].is_active(){
+                        // now these are overlapping
+                        self.bullets[index].kill();
+                        self.enemies[i].kill();
+                        killed = true;
+                        break;
+                    }
+                }
+                if !killed{
+                    for i in 0..self.asteroids.len(){
+                        let (x3, y3) = self.asteroids[i].get_pos();
+                        let (x4, y4) = self.asteroids[i].get_corner();
+                        if !(x3>x2 || x1 > x4 || y1 > y4 || y3 > y2)&& self.asteroids[i].is_active(){
+                            // now these are overlapping
+                            self.bullets[index].kill();
+                            self.asteroids[i].kill();
+                            break;
+                        }
+                    }
+                }
+            } else{
+                // if the bullet is from opponent
+                let (x3, y3) = self.player.get_pos();
+                let (x4, y4) = self.player.get_corner();
+                if !(x3>x2 || x1 > x4 || y1 > y4 || y3 > y2){
+                    panic!("game over");
+                }
+
+            }
+
+            // check bullet state, if dead then remove it.
             if !self.bullets[index].is_active(){
                 self.bullets.swap_remove(index);
                 removed +=1;
@@ -107,6 +154,15 @@ impl GameObject{
             let index = index - removed;
             self.asteroids[index].boundary_check();
             self.asteroids[index].update();
+            
+            // check for asteroids hit
+            let (x1, y1) = self.asteroids[index].get_pos();
+            let (x2, y2) = self.asteroids[index].get_corner();
+            let (x3, y3) = self.player.get_pos();
+            let (x4, y4) = self.player.get_corner();
+            if !(x3>x2 || x1 > x4 || y1 > y4 || y3 > y2){
+                panic!("game over");
+            }
             if !self.asteroids[index].is_active(){
                 self.asteroids.swap_remove(index);
                 removed +=1;

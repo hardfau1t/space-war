@@ -10,6 +10,7 @@ use embedded_graphics::{
     drawable::Drawable,
 };
 
+use heapless::Vec;
 use stm32f7xx_hal::prelude::*;
 
 // Structs definitions
@@ -41,7 +42,7 @@ pub struct Enemy {
 pub struct Bullet {
     x:i8,
     y:i8,
-    friendly:bool,
+    pub friendly:bool,
     pub vel_y:i8,       // no need of x vel, they will always move in straight line
     sprite_width:u8,
     sprite_height:u8,
@@ -67,6 +68,7 @@ pub trait Object{
     fn set_pos(&mut self, x:i8, y:i8);
     fn update(&mut self);
     fn draw(&self, disp:&mut Display);
+    fn get_corner(&self)->(i8, i8);
 
     /// if objects is it will return false;
     fn is_active(&self)->bool;
@@ -105,6 +107,9 @@ impl Player{
             }
         }
     }
+    pub fn kill(&mut self){
+        self.active = false;
+    }
 
 }
 
@@ -114,15 +119,28 @@ impl Enemy{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
         Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true}
     }
+    pub fn kill(&mut self){
+        self.active = false;
+    }
 }
 
+impl Bullet{
 // no new function for bullet. 
 // it should be created using shoot
+    // pub fn is_hit(&mut self, enemies:&Vec<Enemy, _>, asteroids:&Vec<Asteroids, _>){
+    // }
+    pub fn kill(&mut self){
+        self.active = false;
+    }
+}
 
 impl Asteroids{
     pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
         Self{ x, y, vel_x:-1, vel_y:1,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true}
+    }
+    pub fn kill(&mut self){
+        self.active = false;
     }
 }
 
@@ -148,6 +166,11 @@ impl Object for Player {
 
     fn is_active(&self) ->bool {
         self.active
+    }
+
+    fn get_corner(&self)->(i8, i8){
+        let (x, y)= self.get_pos();
+        (x+ self.sprite_width as i8, y + self.sprite_height as i8)
     }
 
     fn boundary_check(&mut self){
@@ -186,6 +209,10 @@ impl Object for Enemy {
     fn is_active(&self) ->bool {
         self.active
     }
+    fn get_corner(&self)->(i8, i8){
+        let (x, y)= self.get_pos();
+        (x+ self.sprite_width as i8, y + self.sprite_height as i8)
+    }
     fn boundary_check(&mut self){
     }
 }
@@ -209,6 +236,10 @@ impl Object for Bullet {
     }
     fn is_active(&self) ->bool {
         self.active
+    }
+    fn get_corner(&self)->(i8, i8){
+        let (x, y)= self.get_pos();
+        (x+ self.sprite_width as i8, y + self.sprite_height as i8)
     }
     fn boundary_check(&mut self){
         // check for players boundary check
@@ -244,6 +275,10 @@ impl Object for Asteroids {
     }
     fn is_active(&self) ->bool {
         self.active
+    }
+    fn get_corner(&self)->(i8, i8){
+        let (x, y)= self.get_pos();
+        (x+ self.sprite_width as i8, y + self.sprite_height as i8)
     }
     fn boundary_check(&mut self){
         // check for players boundary check
