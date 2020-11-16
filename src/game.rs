@@ -1,7 +1,7 @@
 // import Section 
 use crate::{
     types::Display,
-    objects::{Sprite, BULLET},
+    objects::{Sprite, BULLET_SPRITE},
 };
 use embedded_graphics::{
     prelude::*,
@@ -173,14 +173,14 @@ impl Object for Asteroids {
 
 impl Shooter for Player{
     fn shoot(&self)->Bullet{
-        let raw_image = ImageRaw::new(BULLET.data, BULLET.width as u32, BULLET.height as u32);
+        let raw_image = ImageRaw::new(BULLET_SPRITE.data, BULLET_SPRITE.width as u32, BULLET_SPRITE.height as u32);
         Bullet{
-            x:self.x + self.sprite_width as i8/2 - BULLET.width as i8/2,
+            x:self.x + self.sprite_width as i8/2 - BULLET_SPRITE.width as i8/2,
             // if object is friendly then y = y - bullet height else y = y+bullet height;
-            y: self.y - BULLET.height as i8, 
+            y: self.y - BULLET_SPRITE.height as i8, 
             friendly: true,
-            sprite_height: BULLET.height,
-            sprite_width : BULLET.width,
+            sprite_height: BULLET_SPRITE.height,
+            sprite_width : BULLET_SPRITE.width,
             vel_y: -1, // if friendly then vel_y is -ve
             raw_image
         }
@@ -189,14 +189,14 @@ impl Shooter for Player{
 
 impl Shooter for Enemy{
     fn shoot(&self)->Bullet{
-        let raw_image = ImageRaw::new(BULLET.data, BULLET.width as u32, BULLET.height as u32);
+        let raw_image = ImageRaw::new(BULLET_SPRITE.data, BULLET_SPRITE.width as u32, BULLET_SPRITE.height as u32);
         Bullet{
-            x:self.x + self.sprite_width as i8/2 - BULLET.width as i8/2,
+            x:self.x + self.sprite_width as i8/2 - BULLET_SPRITE.width as i8/2,
             // if object is friendly then y = y - bullet height else y = y+bullet height;
-            y: self.y + BULLET.height as i8, 
+            y: self.y + BULLET_SPRITE.height as i8, 
             friendly: false,
-            sprite_height: BULLET.height,
-            sprite_width : BULLET.width,
+            sprite_height: BULLET_SPRITE.height,
+            sprite_width : BULLET_SPRITE.width,
             vel_y: 1, // if friendly then vel_y is -ve
             raw_image
         }

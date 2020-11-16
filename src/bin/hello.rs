@@ -6,7 +6,7 @@
 use space_war as _;
 
 use space_war::types::Display;
-use space_war::objects::{ PLAYER_1, PLAYER_2, BULLET};
+use space_war::objects::{ PLAYER_1_SPRITE, PLAYER_2_SPRITE, BULLET_SPRITE};
 
 use rtic::app;
 
@@ -66,18 +66,18 @@ mod app {
     fn idle(mut c : idle::Context)->!{
         let width = c.resources.width;
         let height = c.resources.height;
-        let raw_1: ImageRaw<BinaryColor> = ImageRaw::new(PLAYER_1.data, PLAYER_1.width as u32, PLAYER_2.height as u32);
-        // let raw_2: ImageRaw<BinaryColor> = ImageRaw::new(PLAYER_2.data, PLAYER_2.width as u32, PLAYER_2.height as u32);
-        let bullet_raw : ImageRaw<BinaryColor>  = ImageRaw::new(BULLET.data, BULLET.width as u32, BULLET.height as u32);
-        let y = *height as i32 - PLAYER_1.height as i32 - 1;
-        let x = (*width as i32 / 2) - (PLAYER_1.width as i32 / 2) - 1;
+        let raw_1: ImageRaw<BinaryColor> = ImageRaw::new(PLAYER_1_SPRITE.data, PLAYER_1_SPRITE.width as u32, PLAYER_2_SPRITE.height as u32);
+        // let raw_2: ImageRaw<BinaryColor> = ImageRaw::new(PLAYER_2_SPRITE.data, PLAYER_2_SPRITE.width as u32, PLAYER_2_SPRITE.height as u32);
+        let bullet_raw : ImageRaw<BinaryColor>  = ImageRaw::new(BULLET_SPRITE.data, BULLET_SPRITE.width as u32, BULLET_SPRITE.height as u32);
+        let y = *height as i32 - PLAYER_1_SPRITE.height as i32 - 1;
+        let x = (*width as i32 / 2) - (PLAYER_1_SPRITE.width as i32 / 2) - 1;
         c.resources.disp.lock(| disp:&mut Display |{
-            for i in (2..(height - PLAYER_1.height - 1)/8).rev(){
+            for i in (2..(height - PLAYER_1_SPRITE.height - 1)/8).rev(){
                 disp.clear(); 
                 draw_rect(Point::zero(),Point::new((*width-1) as i32,(*height-1) as i32), disp);
                 // draw_rect(Point::new(118, 35), Point::new(126, 36), disp);
                 draw_image(x, y, &raw_1, disp );
-                draw_image((width/2) as i32 - (BULLET.width/2) as i32 - 1, i as i32 *8, &bullet_raw, disp);
+                draw_image((width/2) as i32 - (BULLET_SPRITE.width/2) as i32 - 1, i as i32 *8, &bullet_raw, disp);
                 disp.flush().unwrap();
             }
         });

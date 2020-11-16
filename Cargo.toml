@@ -26,6 +26,7 @@ cortex-m-rtic = {git = "https://github.com/rtic-rs/cortex-m-rtic/"}
 embedded-graphics = "0.6.2"
 ssd1306 = "0.4.0"
 heapless = "0.5.6"
+typenum = "1.12.0"
 
 [dependencies.stm32f7xx-hal]
 path = "/home/gireesh/gits/stm32f7xx-hal/"

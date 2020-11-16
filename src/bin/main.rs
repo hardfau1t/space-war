@@ -7,10 +7,9 @@ use space_war as _;
 
 use space_war::{
     types::Display,
-    game::*,
-    objects::*,
-    Node,
-    List,
+    // game::*,
+    // objects::*,
+    GameObject,
 };
 
 use core::cell::RefCell;
@@ -23,12 +22,12 @@ use stm32f7xx_hal::{
     delay::Delay,
 };
 
-use embedded_graphics::{
-    prelude::*,
-    primitives::Rectangle,
-    style::PrimitiveStyle,
-    pixelcolor::BinaryColor,
-};
+// use embedded_graphics::{
+//     prelude::*,
+//     primitives::Rectangle,
+//     style::PrimitiveStyle,
+//     pixelcolor::BinaryColor,
+// };
 
 
 use ssd1306::{
@@ -43,7 +42,7 @@ mod app {
     #[resources]
     struct Resources {
         disp : RefCell<Option<Display>>,
-        player:Player,
+        game : space_war::GameObject,
         delay: Delay,
     }
     #[init]
@@ -69,66 +68,24 @@ mod app {
         // Used RefCell due to RTIC currently doesn't impliments double object lock at a time
         let disp = RefCell::new(Some(disp));
 
-        let player = space_war::game_init();
-        init::LateResources{ disp, player, delay}
+        let game = GameObject::init();
+        init::LateResources{ disp, game, delay}
     }
 
-
-
-    #[idle(resources = [&disp, player, delay])]
+    #[idle(resources = [&disp, game, delay])]
     fn idle( mut c: idle::Context)->!{
         // it is the border of display
-        let border = Rectangle::new(
-            Point::zero(), Point::new(
-                (space_war::DISPLAY_WIDTH - 1 ) as i32,
-                (space_war::DISPLAY_HEIGHT - 1) as i32
-            ))
-            .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1));
         let mut display = c.resources.disp.replace(None).unwrap();
-        // let mut delay = c.resources.delay;
-        let mut enemies:space_war::List<'_, Enemy> = List::new() ;
-        let mut bullets = List::new();
-        let asteroids:Option<Node<Asteroids>> = None;
-        let enemies_count = 5;
-
-
-        // bullets creation
-        // TODO: later it should be replaced with macros
-        let bullet = &Node::new(
-            c.resources.player.lock(|player:&mut Player|{
-                player.shoot()
-            }),
-            bullets.head.take(),
-        );
-        bullets.push(
-            bullet
-        );
         loop{
-            let enemy;
-            if enemies_count > 0{
-                enemy = Node::new(
-                    Enemy::new(63, 1, &ENEMY),
-                    enemies.head.take()
-                    );
-                enemies.push(&enemy);
-            };
-            
             display.clear();
-            c.resources.player.lock(|player:&mut Player|{
-                player.update();
-                player.draw(&mut display);
+            c.resources.game.lock(|game|{
+                game.update();
+                game.draw(&mut display);
             });
-
-            
-            bullets.update();
-            enemies.update();
-            bullets.draw(&mut display);
-            enemies.draw(&mut display);
-            border.draw(&mut display).unwrap();
             display.flush().unwrap();
+        }
             // delay.lock(|delay|{
             //     delay.delay_ms(1000/space_war::FPS_LIMIT);
             // });
-        }
     }
 }
