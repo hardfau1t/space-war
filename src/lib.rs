@@ -34,10 +34,10 @@ use embedded_graphics::{
 /// GameObject will contain all types of objects available in game to manage them from
 /// one place
 pub struct GameObject{
-    player:Player,
-    enemies:Vec<Enemy, U10>,
-    bullets:Vec<Bullet, U20>,
-    asteroids:Vec<Asteroids, U20>,
+    pub player:Player,
+    pub enemies:Vec<Enemy, U10>,
+    pub bullets:Vec<Bullet, U100>,
+    pub asteroids:Vec<Asteroids, U20>,
     border: Styled<Rectangle, PrimitiveStyle<BinaryColor>>,
 }
 

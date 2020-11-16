@@ -12,6 +12,7 @@ use space_war as _;
 use space_war::{
     types::*,
     GameObject,
+    game::Shooter,
 };
 
 use core::cell::RefCell;
@@ -22,6 +23,7 @@ use stm32f7xx_hal::{
     prelude::*,
     i2c::{BlockingI2c, self},
     delay::Delay,
+    gpio::{Edge, ExtiPin},
 };
 
 use ssd1306::{
@@ -39,18 +41,26 @@ mod app {
         game : space_war::GameObject,
         delay: Delay,
         direct:(Left, Right), // direction
+        shoot: ButtonShoot,
     }
     #[init]
     fn init(c : init::Context)->init::LateResources {
-        let mut rcc = c.device.RCC.constrain();
+        let mut rcc = c.device.RCC;
         let gpiof : stm32f7xx_hal::gpio::gpiof::Parts = c.device.GPIOF.split();
+        let mut syscfg = c.device.SYSCFG;
+        let mut exti = c.device.EXTI;
 
         // pins assigning
         let sda = gpiof.pf0.into_alternate_af4().set_open_drain();
         let scl = gpiof.pf1.into_alternate_af4().set_open_drain();
         let left = gpiof.pf2.into_pull_up_input();
         let right = gpiof.pf9.into_pull_up_input();
+        let mut shoot = gpiof.pf8.into_pull_up_input();
+        shoot.make_interrupt_source(&mut syscfg, &mut rcc) ;
+        shoot.trigger_on_edge(&mut exti, Edge::FALLING);
+        shoot.enable_interrupt(&mut exti);
 
+        let mut rcc = rcc.constrain();
         let clk = rcc.cfgr.sysclk(32.mhz()).freeze();
         let syst = c.core.SYST;
 
@@ -69,7 +79,7 @@ mod app {
         let disp = RefCell::new(Some(disp));
 
         let game = GameObject::init();
-        init::LateResources{ disp, game, delay, direct:(left, right)}
+        init::LateResources{ disp, game, delay, direct:(left, right), shoot}
     }
 
     #[idle(resources = [&disp, game, delay, &direct])]
@@ -89,4 +99,18 @@ mod app {
             //     delay.delay_ms(1000/space_war::FPS_LIMIT);
             // });
     }
+
+    #[task(binds = EXTI9_5, resources = [shoot, game], priority = 2)]
+    fn exti9_5(mut c: exti9_5::Context){
+        // spawn a bullet
+        c.resources.game.lock(|game|{
+            game.bullets.push(game.player.shoot()).expect("cant create more bullets");
+        });
+
+        // clear interrupt
+        c.resources.shoot.lock(|button|{
+            button.clear_interrupt_pending_bit();
+        });
+    }
 }
+
