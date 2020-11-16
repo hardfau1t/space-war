@@ -1,7 +1,7 @@
 // import Section 
 use crate::{
     types::{Left, Right, Display},
-    objects::{Sprite, BULLET_SPRITE},
+    objects::*,
 };
 use embedded_graphics::{
     prelude::*,
@@ -63,6 +63,9 @@ pub trait Object{
     fn set_pos(&mut self, x:i8, y:i8);
     fn update(&mut self);
     fn draw(&self, disp:&mut Display);
+
+    /// check if that object crosses the boundary
+    fn boundary_check(&mut self);
 }
 
 pub trait Shooter{
@@ -135,6 +138,20 @@ impl Object for Player {
     fn update(&mut self) {
         self.set_pos(self.get_pos().0 +self.vel_x, self.get_pos().1 + self.vel_y);
     }
+    fn boundary_check(&mut self){
+        // check on both right upper corner and left lower corner if anyone of them crosses the
+        // boundary then take an action on them
+        
+        // since player moves only in x axis, checking on x axis is sufficient
+        // SAFETY: pos in i16, to avoid boundary overflow bugs 
+        // extra 1 pixel removed for the border
+        //
+        // we are taking new position, if not player will get stuck on hitting border
+        let new_pos:i16  = (self.x + self.vel_x) as i16;
+        if new_pos <= 1  || new_pos + self.sprite_width as i16 >= DISPLAY_WIDTH as i16 - 2{
+            self.vel_x = 0;
+        }
+    }
 }
 
 impl Object for Enemy {
@@ -153,6 +170,8 @@ impl Object for Enemy {
 
     fn update(&mut self) {
         self.set_pos(self.get_pos().0 +self.vel_x, self.get_pos().1 + self.vel_y);
+    }
+    fn boundary_check(&mut self){
     }
 }
 
@@ -173,6 +192,8 @@ impl Object for Bullet {
     fn update(&mut self) {
         self.set_pos(self.x, self.get_pos().1 + self.vel_y);
     }
+    fn boundary_check(&mut self){
+    }
 }
 
 impl Object for Asteroids {
@@ -191,6 +212,8 @@ impl Object for Asteroids {
 
     fn update(&mut self) {
         self.set_pos(self.get_pos().0 +self.vel_x, self.get_pos().1 + self.vel_y);
+    }
+    fn boundary_check(&mut self){
     }
 }
 

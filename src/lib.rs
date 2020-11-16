@@ -81,14 +81,23 @@ impl GameObject{
         // }
         // update player
         self.player.mov(direction);
+        self.player.boundary_check();
         self.player.update();
+        
+        // update enemies
         for index in 0..self.enemies.len(){
+            self.enemies[index].boundary_check();
             self.enemies[index].update();
         }
+        
+        // update bullets position
         for index in 0..self.bullets.len(){
+            self.bullets[index].boundary_check();
             self.bullets[index].update();
         }
+        // update asteroids position
         for index in 0..self.asteroids.len(){
+            self.asteroids[index].boundary_check();
             self.asteroids[index].update();
         }
     }
