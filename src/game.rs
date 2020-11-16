@@ -1,6 +1,6 @@
 // import Section 
 use crate::{
-    types::Display,
+    types::{Left, Right, Display},
     objects::{Sprite, BULLET_SPRITE},
 };
 use embedded_graphics::{
@@ -9,6 +9,8 @@ use embedded_graphics::{
     image::{Image, ImageRaw},
     drawable::Drawable,
 };
+
+use stm32f7xx_hal::prelude::*;
 
 // Structs definitions
 #[derive(Debug, Copy, Clone)]
@@ -73,7 +75,29 @@ impl Player{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
         Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image}
     }
+    pub fn mov(&mut self, dir:&(Left, Right)){
+        // check if left button is pressed,
+        if let Ok(left) = dir.0.is_low(){
+            if left{
+                self.vel_x = -1;
+                // when left is pressed but right is not
+                // then velocity will be 0. to bypass that we return early
+                return;
+            } else {
+                self.vel_x = 0;
+            }
+        }
+        if let Ok(right) = dir.1.is_low(){
+            if right{
+                self.vel_x = 1;
+            } else {
+                self.vel_x = 0;
+            }
+        }
+    }
+
 }
+
 
 impl Enemy{
     pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{

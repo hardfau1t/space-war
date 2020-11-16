@@ -64,8 +64,23 @@ impl GameObject{
         }
     }
     
-    pub fn update(&mut self){
+    pub fn update(&mut self, direction: &(Left, Right)){
+        // let mut vel = -1;
+        // while self.enemies.len() == 0{
+        //     let mut enemy = Enemy::new(DISPLAY_WIDTH as i8, 1, &ENEMY_SPRITE);
+        //     enemy.vel_x = vel;
+        //     self.enemies.push(
+        //         enemy
+        //         ).expect("couldn't create enemy");
+        //     vel -=1;
+        // }
+        // if self.bullets.len() == 0{
+        //     self.bullets.push(
+        //         self.player.shoot()
+        //         ).expect("player cant shoot");
+        // }
         // update player
+        self.player.mov(direction);
         self.player.update();
         for index in 0..self.enemies.len(){
             self.enemies[index].update();

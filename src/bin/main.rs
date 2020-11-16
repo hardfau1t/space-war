@@ -1,14 +1,16 @@
 #![no_main]
 #![no_std]
 
-
+// PF0  : SDA
+// PF1  : SCL
+// PF2  : Left
+// PF8  : Shoot
+// PF9  : Rigt
 
 use space_war as _;
 
 use space_war::{
-    types::Display,
-    // game::*,
-    // objects::*,
+    types::*,
     GameObject,
 };
 
@@ -21,14 +23,6 @@ use stm32f7xx_hal::{
     i2c::{BlockingI2c, self},
     delay::Delay,
 };
-
-// use embedded_graphics::{
-//     prelude::*,
-//     primitives::Rectangle,
-//     style::PrimitiveStyle,
-//     pixelcolor::BinaryColor,
-// };
-
 
 use ssd1306::{
     prelude::*,
@@ -44,13 +38,19 @@ mod app {
         disp : RefCell<Option<Display>>,
         game : space_war::GameObject,
         delay: Delay,
+        direct:(Left, Right), // direction
     }
     #[init]
     fn init(c : init::Context)->init::LateResources {
         let mut rcc = c.device.RCC.constrain();
         let gpiof : stm32f7xx_hal::gpio::gpiof::Parts = c.device.GPIOF.split();
+
+        // pins assigning
         let sda = gpiof.pf0.into_alternate_af4().set_open_drain();
         let scl = gpiof.pf1.into_alternate_af4().set_open_drain();
+        let left = gpiof.pf2.into_pull_up_input();
+        let right = gpiof.pf9.into_pull_up_input();
+
         let clk = rcc.cfgr.sysclk(32.mhz()).freeze();
         let syst = c.core.SYST;
 
@@ -69,17 +69,18 @@ mod app {
         let disp = RefCell::new(Some(disp));
 
         let game = GameObject::init();
-        init::LateResources{ disp, game, delay}
+        init::LateResources{ disp, game, delay, direct:(left, right)}
     }
 
-    #[idle(resources = [&disp, game, delay])]
+    #[idle(resources = [&disp, game, delay, &direct])]
     fn idle( mut c: idle::Context)->!{
         // it is the border of display
+        let direct = c.resources.direct;
         let mut display = c.resources.disp.replace(None).unwrap();
         loop{
             display.clear();
             c.resources.game.lock(|game|{
-                game.update();
+                game.update(&direct);
                 game.draw(&mut display);
             });
             display.flush().unwrap();
