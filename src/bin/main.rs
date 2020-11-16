@@ -104,6 +104,15 @@ mod app {
             bullet
         );
         loop{
+            let enemy;
+            if enemies_count > 0{
+                enemy = Node::new(
+                    Enemy::new(63, 1, &ENEMY),
+                    enemies.head.take()
+                    );
+                enemies.push(&enemy);
+            };
+            
             display.clear();
             c.resources.player.lock(|player:&mut Player|{
                 player.update();
@@ -111,13 +120,8 @@ mod app {
             });
 
             
-            // bullet.update();
             bullets.update();
             enemies.update();
-            // while let Some
-            // for e in enemy{
-            //     e.update();
-            // }
             bullets.draw(&mut display);
             enemies.draw(&mut display);
             border.draw(&mut display).unwrap();

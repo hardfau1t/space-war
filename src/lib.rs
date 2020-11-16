@@ -11,6 +11,7 @@ use core::{
     sync::atomic::{AtomicUsize, Ordering},
     cell::{RefCell, Ref, RefMut},
 };
+
 use game::* ;
 use objects::*;
 use types::*;
@@ -39,6 +40,7 @@ pub const FPS_LIMIT:u16      = 10;
 /// instead of detaching old node and attaching new node as head and attaching old
 /// node as next, we simply attach linked list to the new_node as next.
 /// problem with this approch is we will get different linked list each time we push a node.
+#[derive(Clone, Debug)]
 pub struct Node<'a,T: Object>{
     object: RefCell<T>,
     next: Option<&'a Node<'a, T>>,
@@ -82,13 +84,17 @@ impl<'a, T:Object> List<'a, T>{
     // / return reference to object for read
     
     pub fn update(&mut self){
-        while let Some(node) = self.head{
+        let mut head = self.head;
+        while let Some(node) = head{
             node.as_mut().update();
+            head = node.next;
         }
     }
     pub fn draw(&mut self, disp:&mut Display){
-        while let Some(node) = self.head{
+        let mut head = self.head;
+        while let Some(node) = head{
             node.as_mut().draw(disp);
+            head = node.next;
         }
     }
 

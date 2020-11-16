@@ -73,10 +73,6 @@ impl Player{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
         Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image}
     }
-    pub fn draw(&self, disp:&mut Display){
-        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
-        image.draw(disp).unwrap();
-    }
 }
 
 impl Enemy{
@@ -84,29 +80,15 @@ impl Enemy{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
         Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image}
     }
-    pub fn draw(&self, disp:&mut Display){
-        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
-        image.draw(disp).unwrap();
-    }
 }
 
 // no new function for bullet. 
 // it should be created using shoot
-impl Bullet{
-    pub fn draw(&self, disp:&mut Display){
-        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
-        image.draw(disp).unwrap();
-    }
-}
 
 impl Asteroids{
     pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
         Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image}
-    }
-    pub fn draw(&self, disp:&mut Display){
-        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
-        image.draw(disp).unwrap();
     }
 }
 
@@ -122,7 +104,8 @@ impl Object for Player {
         self.y = y;
     }
     fn draw(&self, disp:&mut Display) {
-        self.draw(disp)
+        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
+        image.draw(disp).unwrap();
     }
 
     fn update(&mut self) {
@@ -140,7 +123,8 @@ impl Object for Enemy {
         self.y = y;
     }
     fn draw(&self, disp:&mut Display) {
-        self.draw(disp)
+        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
+        image.draw(disp).unwrap();
     }
 
     fn update(&mut self) {
@@ -158,7 +142,8 @@ impl Object for Bullet {
         self.y = y;
     }
     fn draw(&self, disp:&mut Display) {
-        self.draw(disp)
+        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
+        image.draw(disp).unwrap();
     }
 
     fn update(&mut self) {
@@ -176,7 +161,8 @@ impl Object for Asteroids {
         self.y = y;
     }
     fn draw(&self, disp:&mut Display) {
-        self.draw(disp)
+        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
+        image.draw(disp).unwrap();
     }
 
     fn update(&mut self) {

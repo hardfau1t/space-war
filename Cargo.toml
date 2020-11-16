@@ -17,6 +17,7 @@ branch = "main"
 [dependencies.panic-probe]
 git = "https://github.com/knurling-rs/probe-run"
 branch = "main"
+features = ["print-defmt"]
 
 [dependencies]
 cortex-m = "0.6.4"
@@ -24,6 +25,7 @@ cortex-m-rt = "0.6.13"
 cortex-m-rtic = {git = "https://github.com/rtic-rs/cortex-m-rtic/"}
 embedded-graphics = "0.6.2"
 ssd1306 = "0.4.0"
+heapless = "0.5.6"
 
 [dependencies.stm32f7xx-hal]
 path = "/home/gireesh/gits/stm32f7xx-hal/"
