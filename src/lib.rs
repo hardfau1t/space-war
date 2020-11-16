@@ -12,6 +12,7 @@ use heapless::{
 };
 
 use core:: sync::atomic::{AtomicUsize, Ordering};
+// use core::panic::PanicInfo;
 
 use game::* ;
 use objects::*;
@@ -65,40 +66,51 @@ impl GameObject{
     }
     
     pub fn update(&mut self, direction: &(Left, Right)){
-        // let mut vel = -1;
-        // while self.enemies.len() == 0{
-        //     let mut enemy = Enemy::new(DISPLAY_WIDTH as i8, 1, &ENEMY_SPRITE);
-        //     enemy.vel_x = vel;
-        //     self.enemies.push(
-        //         enemy
-        //         ).expect("couldn't create enemy");
-        //     vel -=1;
-        // }
-        // if self.bullets.len() == 0{
-        //     self.bullets.push(
-        //         self.player.shoot()
-        //         ).expect("player cant shoot");
-        // }
+        while self.asteroids.len() == 0{
+            let asteroid = Asteroids::new((DISPLAY_WIDTH-&ASTEROID_SPRITE.width -2 ) as i8, 1 - ASTEROID_SPRITE.height as i8, &ASTEROID_SPRITE);
+            self.asteroids.push(
+                asteroid
+                ).expect("couldn't create enemy");
+        }
         // update player
         self.player.mov(direction);
         self.player.boundary_check();
         self.player.update();
         
         // update enemies
+        let mut removed = 0;
         for index in 0..self.enemies.len(){
+            let index = index - removed;
             self.enemies[index].boundary_check();
             self.enemies[index].update();
+            if !self.enemies[index].is_active(){
+                // dont know how this works but it works.
+                self.enemies.swap_remove(index);
+                removed +=1;
+            }
         }
         
         // update bullets position
+        removed = 0;
         for index in 0..self.bullets.len(){
+            let index = index - removed;
             self.bullets[index].boundary_check();
             self.bullets[index].update();
+            if !self.bullets[index].is_active(){
+                self.bullets.swap_remove(index);
+                removed +=1;
+            }
         }
         // update asteroids position
+        removed = 0;
         for index in 0..self.asteroids.len(){
+            let index = index - removed;
             self.asteroids[index].boundary_check();
             self.asteroids[index].update();
+            if !self.asteroids[index].is_active(){
+                self.asteroids.swap_remove(index);
+                removed +=1;
+            }
         }
     }
     pub fn draw(&self, disp:&mut Display){
@@ -132,4 +144,8 @@ pub fn exit() -> ! {
     }
 }
 
-
+// #[panic_handler]
+// fn panic_handle(info: &PanicInfo)->!{
+//     defmt::debug!("{:?}", info;
+//     exit();
+// }

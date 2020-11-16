@@ -22,6 +22,7 @@ pub struct Player {
     sprite_width:u8,
     sprite_height:u8,
     raw_image: ImageRaw<'static, BinaryColor>,
+    active: bool
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -33,6 +34,7 @@ pub struct Enemy {
     sprite_width:u8,
     sprite_height:u8,
     raw_image: ImageRaw<'static, BinaryColor>,
+    active:bool
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -44,6 +46,7 @@ pub struct Bullet {
     sprite_width:u8,
     sprite_height:u8,
     raw_image: ImageRaw<'static, BinaryColor>,
+    active: bool
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -55,6 +58,7 @@ pub struct Asteroids {
     sprite_width:u8,
     sprite_height:u8,
     raw_image: ImageRaw<'static, BinaryColor>,
+    active:bool,
 }
 // Object struct is to group all objects like player bullets, enemy
 
@@ -63,6 +67,9 @@ pub trait Object{
     fn set_pos(&mut self, x:i8, y:i8);
     fn update(&mut self);
     fn draw(&self, disp:&mut Display);
+
+    /// if objects is it will return false;
+    fn is_active(&self)->bool;
 
     /// check if that object crosses the boundary
     fn boundary_check(&mut self);
@@ -76,7 +83,7 @@ pub trait Shooter{
 impl Player{
     pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
-        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image}
+        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true}
     }
     pub fn mov(&mut self, dir:&(Left, Right)){
         // check if left button is pressed,
@@ -105,7 +112,7 @@ impl Player{
 impl Enemy{
     pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
-        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image}
+        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true}
     }
 }
 
@@ -115,7 +122,7 @@ impl Enemy{
 impl Asteroids{
     pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
-        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image}
+        Self{ x, y, vel_x:-1, vel_y:1,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true}
     }
 }
 
@@ -138,6 +145,11 @@ impl Object for Player {
     fn update(&mut self) {
         self.set_pos(self.get_pos().0 +self.vel_x, self.get_pos().1 + self.vel_y);
     }
+
+    fn is_active(&self) ->bool {
+        self.active
+    }
+
     fn boundary_check(&mut self){
         // check on both right upper corner and left lower corner if anyone of them crosses the
         // boundary then take an action on them
@@ -171,6 +183,9 @@ impl Object for Enemy {
     fn update(&mut self) {
         self.set_pos(self.get_pos().0 +self.vel_x, self.get_pos().1 + self.vel_y);
     }
+    fn is_active(&self) ->bool {
+        self.active
+    }
     fn boundary_check(&mut self){
     }
 }
@@ -192,7 +207,21 @@ impl Object for Bullet {
     fn update(&mut self) {
         self.set_pos(self.x, self.get_pos().1 + self.vel_y);
     }
+    fn is_active(&self) ->bool {
+        self.active
+    }
     fn boundary_check(&mut self){
+        // check for players boundary check
+        let new_pos:i16  = (self.y + self.vel_y) as i16;
+        if self.friendly {
+            if new_pos < 1 {
+                self.active = false;
+            }
+        } else {
+            if new_pos > (DISPLAY_WIDTH - self.sprite_height - 2) as i16{
+                self.active = false
+            }
+        }
     }
 }
 
@@ -213,7 +242,18 @@ impl Object for Asteroids {
     fn update(&mut self) {
         self.set_pos(self.get_pos().0 +self.vel_x, self.get_pos().1 + self.vel_y);
     }
+    fn is_active(&self) ->bool {
+        self.active
+    }
     fn boundary_check(&mut self){
+        // check for players boundary check
+        let new_pos:i16  = (self.x + self.vel_x) as i16;
+        if new_pos <= 1  || new_pos + self.sprite_width as i16 >= DISPLAY_WIDTH as i16 - 2{
+            self.vel_x = -self.vel_x ;
+        }
+        if self.y as i16 + self.vel_y as i16 + self.sprite_height as i16 >= (DISPLAY_HEIGHT as i16 ){
+            self.active = false;
+        }
     }
 }
 
@@ -229,7 +269,8 @@ impl Shooter for Player{
             sprite_height: BULLET_SPRITE.height,
             sprite_width : BULLET_SPRITE.width,
             vel_y: -1, // if friendly then vel_y is -ve
-            raw_image
+            raw_image,
+            active:true,
         }
     }
 }
@@ -245,7 +286,8 @@ impl Shooter for Enemy{
             sprite_height: BULLET_SPRITE.height,
             sprite_width : BULLET_SPRITE.width,
             vel_y: 1, // if friendly then vel_y is -ve
-            raw_image
+            raw_image,
+            active:true,
         }
     }
 }

@@ -17,7 +17,6 @@ branch = "main"
 [dependencies.panic-probe]
 git = "https://github.com/knurling-rs/probe-run"
 branch = "main"
-# features = ["print-defmt"]
 
 [dependencies]
 cortex-m = "0.6.4"
