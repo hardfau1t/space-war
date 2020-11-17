@@ -19,11 +19,14 @@ use core::cell::RefCell;
 
 use rtic::app;
 
+use stm32f7xx_hal as _; 
 use stm32f7xx_hal::{
     prelude::*,
     i2c::{BlockingI2c, self},
     delay::Delay,
     gpio::{Edge, ExtiPin},
+    timer::{Timer, Event},
+    pac::{EXTI, TIM2}
 };
 
 use ssd1306::{
@@ -42,6 +45,8 @@ mod app {
         delay: Delay,
         direct:(Left, Right), // direction
         shoot: ButtonShoot,
+        exti : EXTI,
+        timer2: Timer<TIM2>,
     }
     #[init]
     fn init(c : init::Context)->init::LateResources {
@@ -61,6 +66,7 @@ mod app {
         shoot.enable_interrupt(&mut exti);
 
         let mut rcc = rcc.constrain();
+        // if clock is changed need to change timer delay too,
         let clk = rcc.cfgr.sysclk(32.mhz()).freeze();
         let syst = c.core.SYST;
 
@@ -74,12 +80,15 @@ mod app {
         disp.init().expect("couldn't initiate display");
         disp.set_rotation(DisplayRotation::Rotate270).unwrap();
 
+        // initialize timer for player ammunition
+        let mut player_ammo_timer = Timer::tim2(c.device.TIM2, 1.hz(), clk, &mut rcc.apb1 );
+        player_ammo_timer.listen(Event::TimeOut);
 
         // Used RefCell due to RTIC currently doesn't impliments double object lock at a time
         let disp = RefCell::new(Some(disp));
 
         let game = GameObject::init();
-        init::LateResources{ disp, game, delay, direct:(left, right), shoot}
+        init::LateResources{ disp, game, delay, direct:(left, right), shoot, exti, timer2:player_ammo_timer}
     }
 
     #[idle(resources = [&disp, game, delay, &direct])]
@@ -90,6 +99,7 @@ mod app {
         loop{
             display.clear();
             c.resources.game.lock(|game|{
+                game.spawn();
                 game.update(&direct);
                 game.draw(&mut display);
             });
@@ -100,17 +110,59 @@ mod app {
             // });
     }
 
-    #[task(binds = EXTI9_5, resources = [shoot, game], priority = 2)]
+    #[task(binds = EXTI9_5, resources = [shoot, game, exti], priority = 2)]
     fn exti9_5(mut c: exti9_5::Context){
+        // if no ammo left then disable interrupt, until ammo gets recharged
+        let mut disable_intr = false;
         // spawn a bullet
-        c.resources.game.lock(|game|{
-            game.bullets.push(game.player.shoot()).expect("cant create more bullets");
+        c.resources.game.lock(|game:&mut GameObject|{
+            if game.player.shots_left > 0{
+                game.bullets.push(game.player.shoot()).expect("cant create more bullets");
+                game.player.shots_left -=1;
+            } else{
+                disable_intr = true;
+            }
         });
-
+        let mut exti = c.resources.exti;
         // clear interrupt
-        c.resources.shoot.lock(|button|{
+        c.resources.shoot.lock(|button:&mut ButtonShoot|{
             button.clear_interrupt_pending_bit();
+            if disable_intr{
+                exti.lock(|exti:&mut EXTI|{
+                    button.disable_interrupt(exti);
+                });
+            }
+        });
+    }
+
+    #[task(binds = TIM2, resources = [shoot, game, exti, timer2], priority = 2)]
+    fn tim2(c: tim2::Context){
+        let mut exti = c.resources.exti;
+        let mut game = c.resources.game;
+        let mut button = c.resources.shoot;
+        let mut timer = c.resources.timer2;
+        // if previosly interrupt is disabled then enable it,
+        let mut enable = false;
+        game.lock(|game:&mut GameObject|{
+            if game.player.shots_left == 0{
+                enable = true;
+            }
+            game.player.shots_left +=1;
+            // if ammo is more than max then set to max
+            if game.player.shots_left > game.player.max_shots(){
+                game.player.shots_left = game.player.max_shots();
+            }
+        });
+        if enable {
+            button.lock(|button:&mut ButtonShoot|{
+                exti.lock(|exti:&mut EXTI|{
+                    button.enable_interrupt(exti);
+                })
+            })
+        }
+        // clear interrupt
+        timer.lock(|timer:&mut Timer<TIM2>|{
+            timer.clear_interrupt(Event::TimeOut);
         });
     }
 }
-

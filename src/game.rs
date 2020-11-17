@@ -10,7 +10,6 @@ use embedded_graphics::{
     drawable::Drawable,
 };
 
-use heapless::Vec;
 use stm32f7xx_hal::prelude::*;
 
 // Structs definitions
@@ -20,6 +19,8 @@ pub struct Player {
     y:i8,
     pub vel_x:i8,
     pub vel_y:i8,
+    pub shots_left:i8,
+    max_shots:i8,
     sprite_width:u8,
     sprite_height:u8,
     raw_image: ImageRaw<'static, BinaryColor>,
@@ -85,7 +86,7 @@ pub trait Shooter{
 impl Player{
     pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
-        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true}
+        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true, shots_left:10, max_shots:10}
     }
     pub fn mov(&mut self, dir:&(Left, Right)){
         // check if left button is pressed,
@@ -109,6 +110,9 @@ impl Player{
     }
     pub fn kill(&mut self){
         self.active = false;
+    }
+    pub fn max_shots(&self)->i8{
+        self.max_shots
     }
 
 }
@@ -303,7 +307,7 @@ impl Shooter for Player{
             friendly: true,
             sprite_height: BULLET_SPRITE.height,
             sprite_width : BULLET_SPRITE.width,
-            vel_y: -1, // if friendly then vel_y is -ve
+            vel_y: -3, // if friendly then vel_y is -ve
             raw_image,
             active:true,
         }
@@ -320,7 +324,7 @@ impl Shooter for Enemy{
             friendly: false,
             sprite_height: BULLET_SPRITE.height,
             sprite_width : BULLET_SPRITE.width,
-            vel_y: 1, // if friendly then vel_y is -ve
+            vel_y: 2, // if friendly then vel_y is -ve
             raw_image,
             active:true,
         }

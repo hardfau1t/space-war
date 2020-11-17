@@ -64,14 +64,18 @@ impl GameObject{
             player, enemies, bullets, asteroids, border
         }
     }
-    
-    pub fn update(&mut self, direction: &(Left, Right)){
+
+    /// spawns objects like enemies and asteroids, but not bullets
+    pub fn spawn(&mut self){
         while self.asteroids.len() == 0{
             let asteroid = Asteroids::new((DISPLAY_WIDTH-&ASTEROID_SPRITE.width -2 ) as i8, 1 - ASTEROID_SPRITE.height as i8, &ASTEROID_SPRITE);
             self.asteroids.push(
                 asteroid
                 ).expect("couldn't create enemy");
         }
+    }
+    
+    pub fn update(&mut self, direction: &(Left, Right)){
         // update player
         self.player.mov(direction);
         self.player.boundary_check();
@@ -169,6 +173,8 @@ impl GameObject{
             }
         }
     }
+
+    /// draw all objects in the game
     pub fn draw(&self, disp:&mut Display){
         // update player
         self.player.draw(disp);
