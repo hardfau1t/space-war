@@ -67,11 +67,30 @@ impl GameObject{
 
     /// spawns objects like enemies and asteroids, but not bullets
     pub fn spawn(&mut self){
-        while self.asteroids.len() == 0{
-            let asteroid = Asteroids::new((DISPLAY_WIDTH-&ASTEROID_SPRITE.width -2 ) as i16, 1 - ASTEROID_SPRITE.height as i16, &ASTEROID_SPRITE);
-            self.asteroids.push(
-                asteroid
+        // spawn asteroids
+        // while self.asteroids.len() == 0{
+        //     let asteroid = Asteroids::new((DISPLAY_WIDTH-&ASTEROID_SPRITE.width -2 ) as i16, 1 - ASTEROID_SPRITE.height as i16, &ASTEROID_SPRITE);
+        //     self.asteroids.push(
+        //         asteroid
+        //         ).expect("couldn't create enemy");
+        // }
+        // spawn enemies
+        while self.enemies.len() == 0{
+            let enemy = Enemy::new((DISPLAY_WIDTH/2 -&ENEMY_SPRITE.width/2 -1 ) as i16, 1 , &ENEMY_SPRITE);
+            self.enemies.push(
+                enemy
                 ).expect("couldn't create enemy");
+        }
+        // spawn enemy bullets
+        for i in 0..self.enemies.len(){
+            if self.enemies[i].bullet.is_null(){
+                match self.enemies[i].shoot(){
+                    Ok(bullet)=>{
+                        self.bullets.push(bullet).unwrap();
+                    },
+                    Err(_)=>{},
+                }
+            }
         }
     }
     
@@ -148,7 +167,7 @@ impl GameObject{
 
             // check bullet state, if dead then remove it.
             if !self.bullets[index].is_active(){
-                self.bullets.swap_remove(index);
+                self.bullets.swap_remove(index).kill();
                 removed +=1;
             }
         }

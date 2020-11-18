@@ -11,6 +11,7 @@ use embedded_graphics::{
 };
 
 use stm32f7xx_hal::prelude::*;
+use defmt::*;
 
 // Structs definitions
 #[derive(Debug, Copy, Clone)]
@@ -27,7 +28,7 @@ pub struct Player {
     active: bool
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug,Clone)]
 pub struct Enemy {
     x:i16,
     y:i16,
@@ -36,13 +37,12 @@ pub struct Enemy {
     sprite_width:u8,
     sprite_height:u8,
     // number bullets are created by enemy and number of active
-    bullets_cnt:i16,
-    max_bullets:i16,
     raw_image: ImageRaw<'static, BinaryColor>,
-    active:bool
+    active:bool,
+    pub bullet:*mut Bullet,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Bullet {
     x:i16,
     y:i16,
@@ -52,7 +52,7 @@ pub struct Bullet {
     sprite_height:u8,
     raw_image: ImageRaw<'static, BinaryColor>,
     active: bool,
-    parent:*mut dyn Shooter,
+    parent:*mut Enemy,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -126,10 +126,20 @@ impl Player{
 impl Enemy{
     pub fn new(x:i16, y:i16, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
-        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true, bullets_cnt:0,max_bullets:1}
+        Self{ 
+            x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, 
+            sprite_height:sprite.height, raw_image, active:true, 
+            bullet: core::ptr::null_mut(),
+        }
     }
     pub fn kill(&mut self){
         self.active = false;
+        let bullet = self.bullet as *mut Bullet;
+        if !bullet.is_null(){
+            unsafe{
+                (*bullet).parent = core::ptr::null_mut();
+            }
+        }
     }
 }
 
@@ -140,6 +150,13 @@ impl Bullet{
     // }
     pub fn kill(&mut self){
         self.active = false;
+        let parent = self.parent as *mut Enemy;
+        if !parent.is_null(){
+            debug!("setting child to null");
+            unsafe{
+                 (*parent).bullet = core::ptr::null_mut();
+            }
+        }
     }
 }
 
@@ -258,7 +275,7 @@ impl Object for Bullet {
                 self.active = false;
             }
         } else {
-            if new_pos > (DISPLAY_WIDTH - self.sprite_height - 2) as i16{
+            if new_pos > (DISPLAY_HEIGHT - self.sprite_height - 2) as i16{
                 self.active = false
             }
         }
@@ -317,7 +334,7 @@ impl Shooter for Player{
                 vel_y: -3, // if friendly then vel_y is -ve
                 raw_image,
                 active:true,
-                parent: self,
+                parent: core::ptr::null_mut(),
             })
         } else{
             Err(())
@@ -328,9 +345,8 @@ impl Shooter for Player{
 impl Shooter for Enemy{
     fn shoot(&mut self)->Result<Bullet, ()>{
         let raw_image = ImageRaw::new(BULLET_SPRITE.data, BULLET_SPRITE.width as u32, BULLET_SPRITE.height as u32);
-        if self.bullets_cnt < self.max_bullets{
-            self.bullets_cnt +=1;
-            Ok(Bullet{
+        if self.bullet.is_null(){
+            let mut bullet = Bullet{
                 x:self.x + self.sprite_width as i16/2 - BULLET_SPRITE.width as i16/2,
                 // if object is friendly then y = y - bullet height else y = y+bullet height;
                 y: self.y + BULLET_SPRITE.height as i16, 
@@ -341,8 +357,10 @@ impl Shooter for Enemy{
                 raw_image,
                 active:true,
                 parent:self,
-            }
-        )} else{
+            };
+            self.bullet = &mut bullet;
+            Ok(bullet)
+        } else{
             Err(())
         }
     }
@@ -350,4 +368,19 @@ impl Shooter for Enemy{
 
 // SAFETY: TODO: add a state to check weather parent is alive or not
 unsafe impl Send for Bullet{
+}
+unsafe impl Send for Enemy{}
+// while dropping bullet
+impl Drop for Bullet{
+    fn drop(&mut self) {
+        // bullet spawned by player then do nothing
+        // if the bullet is spawned by enemy and the parent is alive then
+        if !(self.friendly || self.parent.is_null()){
+        }
+    }
+}
+
+impl Drop for Enemy{
+    fn drop(&mut self) {
+    }
 }
