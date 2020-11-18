@@ -15,12 +15,12 @@ use stm32f7xx_hal::prelude::*;
 // Structs definitions
 #[derive(Debug, Copy, Clone)]
 pub struct Player {
-    x:i8,
-    y:i8,
-    pub vel_x:i8,
-    pub vel_y:i8,
-    pub bullets_cnt:i8,
-    max_shots:i8,
+    x:i16,
+    y:i16,
+    pub vel_x:i16,
+    pub vel_y:i16,
+    pub bullets_cnt:i16,
+    max_shots:i16,
     sprite_width:u8,
     sprite_height:u8,
     raw_image: ImageRaw<'static, BinaryColor>,
@@ -29,25 +29,25 @@ pub struct Player {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Enemy {
-    x:i8,
-    y:i8,
-    pub vel_x:i8,
-    pub vel_y:i8,
+    x:i16,
+    y:i16,
+    pub vel_x:i16,
+    pub vel_y:i16,
     sprite_width:u8,
     sprite_height:u8,
     // number bullets are created by enemy and number of active
-    bullets_cnt:i8,
-    max_bullets:i8,
+    bullets_cnt:i16,
+    max_bullets:i16,
     raw_image: ImageRaw<'static, BinaryColor>,
     active:bool
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct Bullet {
-    x:i8,
-    y:i8,
+    x:i16,
+    y:i16,
     pub friendly:bool,
-    pub vel_y:i8,       // no need of x vel, they will always move in straight line
+    pub vel_y:i16,       // no need of x vel, they will always move in straight line
     sprite_width:u8,
     sprite_height:u8,
     raw_image: ImageRaw<'static, BinaryColor>,
@@ -57,10 +57,10 @@ pub struct Bullet {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Asteroids {
-    x:i8,
-    y:i8,
-    pub vel_x:i8,
-    pub vel_y:i8,
+    x:i16,
+    y:i16,
+    pub vel_x:i16,
+    pub vel_y:i16,
     sprite_width:u8,
     sprite_height:u8,
     raw_image: ImageRaw<'static, BinaryColor>,
@@ -69,11 +69,11 @@ pub struct Asteroids {
 // Object struct is to group all objects like player bullets, enemy
 
 pub trait Object{
-    fn get_pos(&self)->(i8,i8);
-    fn set_pos(&mut self, x:i8, y:i8);
+    fn get_pos(&self)->(i16,i16);
+    fn set_pos(&mut self, x:i16, y:i16);
     fn update(&mut self);
     fn draw(&self, disp:&mut Display);
-    fn get_corner(&self)->(i8, i8);
+    fn get_corner(&self)->(i16, i16);
 
     /// if objects is it will return false;
     fn is_active(&self)->bool;
@@ -89,7 +89,7 @@ pub trait Shooter{
 }
 // implementation Section
 impl Player{
-    pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
+    pub fn new(x:i16, y:i16, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
         Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true, bullets_cnt:0, max_shots:10}
     }
@@ -116,7 +116,7 @@ impl Player{
     pub fn kill(&mut self){
         self.active = false;
     }
-    pub fn max_shots(&self)->i8{
+    pub fn max_shots(&self)->i16{
         self.max_shots
     }
 
@@ -124,7 +124,7 @@ impl Player{
 
 
 impl Enemy{
-    pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
+    pub fn new(x:i16, y:i16, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
         Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true, bullets_cnt:0,max_bullets:1}
     }
@@ -144,7 +144,7 @@ impl Bullet{
 }
 
 impl Asteroids{
-    pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
+    pub fn new(x:i16, y:i16, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
         Self{ x, y, vel_x:-1, vel_y:1,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true}
     }
@@ -156,11 +156,11 @@ impl Asteroids{
 // these implementations are later changed into macros, currently for simplicity it is implimented
 // for every object
 impl Object for Player {
-    fn get_pos(&self)->(i8, i8){
+    fn get_pos(&self)->(i16, i16){
         (self.x, self.y)
     }
 
-    fn set_pos(&mut self, x:i8, y:i8){
+    fn set_pos(&mut self, x:i16, y:i16){
         self.x = x;
         self.y = y;
     }
@@ -177,9 +177,9 @@ impl Object for Player {
         self.active
     }
 
-    fn get_corner(&self)->(i8, i8){
+    fn get_corner(&self)->(i16, i16){
         let (x, y)= self.get_pos();
-        (x+ self.sprite_width as i8, y + self.sprite_height as i8)
+        (x+ self.sprite_width as i16, y + self.sprite_height as i16)
     }
 
     fn boundary_check(&mut self){
@@ -199,11 +199,11 @@ impl Object for Player {
 }
 
 impl Object for Enemy {
-    fn get_pos(&self)->(i8, i8){
+    fn get_pos(&self)->(i16, i16){
         (self.x, self.y)
     }
 
-    fn set_pos(&mut self, x:i8, y:i8){
+    fn set_pos(&mut self, x:i16, y:i16){
         self.x = x;
         self.y = y;
     }
@@ -218,20 +218,20 @@ impl Object for Enemy {
     fn is_active(&self) ->bool {
         self.active
     }
-    fn get_corner(&self)->(i8, i8){
+    fn get_corner(&self)->(i16, i16){
         let (x, y)= self.get_pos();
-        (x+ self.sprite_width as i8, y + self.sprite_height as i8)
+        (x+ self.sprite_width as i16, y + self.sprite_height as i16)
     }
     fn boundary_check(&mut self){
     }
 }
 
 impl Object for Bullet {
-    fn get_pos(&self)->(i8, i8){
+    fn get_pos(&self)->(i16, i16){
         (self.x, self.y)
     }
 
-    fn set_pos(&mut self, x:i8, y:i8){
+    fn set_pos(&mut self, x:i16, y:i16){
         self.x = x;
         self.y = y;
     }
@@ -246,9 +246,9 @@ impl Object for Bullet {
     fn is_active(&self) ->bool {
         self.active
     }
-    fn get_corner(&self)->(i8, i8){
+    fn get_corner(&self)->(i16, i16){
         let (x, y)= self.get_pos();
-        (x+ self.sprite_width as i8, y + self.sprite_height as i8)
+        (x+ self.sprite_width as i16, y + self.sprite_height as i16)
     }
     fn boundary_check(&mut self){
         // check for players boundary check
@@ -266,11 +266,11 @@ impl Object for Bullet {
 }
 
 impl Object for Asteroids {
-    fn get_pos(&self)->(i8, i8){
+    fn get_pos(&self)->(i16, i16){
         (self.x, self.y)
     }
 
-    fn set_pos(&mut self, x:i8, y:i8){
+    fn set_pos(&mut self, x:i16, y:i16){
         self.x = x;
         self.y = y;
     }
@@ -285,9 +285,9 @@ impl Object for Asteroids {
     fn is_active(&self) ->bool {
         self.active
     }
-    fn get_corner(&self)->(i8, i8){
+    fn get_corner(&self)->(i16, i16){
         let (x, y)= self.get_pos();
-        (x+ self.sprite_width as i8, y + self.sprite_height as i8)
+        (x+ self.sprite_width as i16, y + self.sprite_height as i16)
     }
     fn boundary_check(&mut self){
         // check for players boundary check
@@ -308,9 +308,9 @@ impl Shooter for Player{
         if self.bullets_cnt < self.max_shots{
             self.bullets_cnt +=1;
             Ok(Bullet{
-                x:self.x + self.sprite_width as i8/2 - BULLET_SPRITE.width as i8/2,
+                x:self.x + self.sprite_width as i16/2 - BULLET_SPRITE.width as i16/2,
                 // if object is friendly then y = y - bullet height else y = y+bullet height;
-                y: self.y - BULLET_SPRITE.height as i8, 
+                y: self.y - BULLET_SPRITE.height as i16, 
                 friendly: true,
                 sprite_height: BULLET_SPRITE.height,
                 sprite_width : BULLET_SPRITE.width,
@@ -331,9 +331,9 @@ impl Shooter for Enemy{
         if self.bullets_cnt < self.max_bullets{
             self.bullets_cnt +=1;
             Ok(Bullet{
-                x:self.x + self.sprite_width as i8/2 - BULLET_SPRITE.width as i8/2,
+                x:self.x + self.sprite_width as i16/2 - BULLET_SPRITE.width as i16/2,
                 // if object is friendly then y = y - bullet height else y = y+bullet height;
-                y: self.y + BULLET_SPRITE.height as i8, 
+                y: self.y + BULLET_SPRITE.height as i16, 
                 friendly: false,
                 sprite_height: BULLET_SPRITE.height,
                 sprite_width : BULLET_SPRITE.width,

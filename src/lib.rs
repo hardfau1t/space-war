@@ -46,8 +46,8 @@ impl GameObject{
     pub fn init()->Self{
         // start the player in center 
         let player = Player::new(
-            (DISPLAY_WIDTH/2 - PLAYER_1_SPRITE.width/2 +1)as i8, 
-            (DISPLAY_HEIGHT - PLAYER_1_SPRITE.height - 1) as i8, // -1 for border
+            (DISPLAY_WIDTH/2 - PLAYER_1_SPRITE.width/2 +1)as i16, 
+            (DISPLAY_HEIGHT - PLAYER_1_SPRITE.height - 1) as i16, // -1 for border
             &PLAYER_1_SPRITE
         );
         // enemies
@@ -68,7 +68,7 @@ impl GameObject{
     /// spawns objects like enemies and asteroids, but not bullets
     pub fn spawn(&mut self){
         while self.asteroids.len() == 0{
-            let asteroid = Asteroids::new((DISPLAY_WIDTH-&ASTEROID_SPRITE.width -2 ) as i8, 1 - ASTEROID_SPRITE.height as i8, &ASTEROID_SPRITE);
+            let asteroid = Asteroids::new((DISPLAY_WIDTH-&ASTEROID_SPRITE.width -2 ) as i16, 1 - ASTEROID_SPRITE.height as i16, &ASTEROID_SPRITE);
             self.asteroids.push(
                 asteroid
                 ).expect("couldn't create enemy");
