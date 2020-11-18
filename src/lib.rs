@@ -165,6 +165,7 @@ impl GameObject{
             let (x3, y3) = self.player.get_pos();
             let (x4, y4) = self.player.get_corner();
             if !(x3>x2 || x1 > x4 || y1 > y4 || y3 > y2){
+                defmt::debug!("game over");
                 panic!("game over");
             }
             if !self.asteroids[index].is_active(){

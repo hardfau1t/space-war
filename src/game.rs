@@ -19,7 +19,7 @@ pub struct Player {
     y:i8,
     pub vel_x:i8,
     pub vel_y:i8,
-    pub shots_left:i8,
+    pub bullets_cnt:i8,
     max_shots:i8,
     sprite_width:u8,
     sprite_height:u8,
@@ -35,6 +35,9 @@ pub struct Enemy {
     pub vel_y:i8,
     sprite_width:u8,
     sprite_height:u8,
+    // number bullets are created by enemy and number of active
+    bullets_cnt:i8,
+    max_bullets:i8,
     raw_image: ImageRaw<'static, BinaryColor>,
     active:bool
 }
@@ -48,7 +51,8 @@ pub struct Bullet {
     sprite_width:u8,
     sprite_height:u8,
     raw_image: ImageRaw<'static, BinaryColor>,
-    active: bool
+    active: bool,
+    parent:*mut dyn Shooter,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -80,13 +84,14 @@ pub trait Object{
 
 pub trait Shooter{
     // Creates a bullet which is also an Player
-    fn shoot(&self)->Bullet;
+    // type Counter;
+    fn shoot(&mut self)->Result<Bullet, ()>;
 }
 // implementation Section
 impl Player{
     pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
-        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true, shots_left:10, max_shots:10}
+        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true, bullets_cnt:0, max_shots:10}
     }
     pub fn mov(&mut self, dir:&(Left, Right)){
         // check if left button is pressed,
@@ -121,7 +126,7 @@ impl Player{
 impl Enemy{
     pub fn new(x:i8, y:i8, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
-        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true}
+        Self{ x, y, vel_x:0, vel_y:0,sprite_width: sprite.width, sprite_height:sprite.height, raw_image, active:true, bullets_cnt:0,max_bullets:1}
     }
     pub fn kill(&mut self){
         self.active = false;
@@ -298,36 +303,51 @@ impl Object for Asteroids {
 
 
 impl Shooter for Player{
-    fn shoot(&self)->Bullet{
+    fn shoot(&mut self)->Result<Bullet, ()>{
         let raw_image = ImageRaw::new(BULLET_SPRITE.data, BULLET_SPRITE.width as u32, BULLET_SPRITE.height as u32);
-        Bullet{
-            x:self.x + self.sprite_width as i8/2 - BULLET_SPRITE.width as i8/2,
-            // if object is friendly then y = y - bullet height else y = y+bullet height;
-            y: self.y - BULLET_SPRITE.height as i8, 
-            friendly: true,
-            sprite_height: BULLET_SPRITE.height,
-            sprite_width : BULLET_SPRITE.width,
-            vel_y: -3, // if friendly then vel_y is -ve
-            raw_image,
-            active:true,
+        if self.bullets_cnt < self.max_shots{
+            self.bullets_cnt +=1;
+            Ok(Bullet{
+                x:self.x + self.sprite_width as i8/2 - BULLET_SPRITE.width as i8/2,
+                // if object is friendly then y = y - bullet height else y = y+bullet height;
+                y: self.y - BULLET_SPRITE.height as i8, 
+                friendly: true,
+                sprite_height: BULLET_SPRITE.height,
+                sprite_width : BULLET_SPRITE.width,
+                vel_y: -3, // if friendly then vel_y is -ve
+                raw_image,
+                active:true,
+                parent: self,
+            })
+        } else{
+            Err(())
         }
     }
 }
 
 impl Shooter for Enemy{
-    fn shoot(&self)->Bullet{
+    fn shoot(&mut self)->Result<Bullet, ()>{
         let raw_image = ImageRaw::new(BULLET_SPRITE.data, BULLET_SPRITE.width as u32, BULLET_SPRITE.height as u32);
-        Bullet{
-            x:self.x + self.sprite_width as i8/2 - BULLET_SPRITE.width as i8/2,
-            // if object is friendly then y = y - bullet height else y = y+bullet height;
-            y: self.y + BULLET_SPRITE.height as i8, 
-            friendly: false,
-            sprite_height: BULLET_SPRITE.height,
-            sprite_width : BULLET_SPRITE.width,
-            vel_y: 2, // if friendly then vel_y is -ve
-            raw_image,
-            active:true,
+        if self.bullets_cnt < self.max_bullets{
+            self.bullets_cnt +=1;
+            Ok(Bullet{
+                x:self.x + self.sprite_width as i8/2 - BULLET_SPRITE.width as i8/2,
+                // if object is friendly then y = y - bullet height else y = y+bullet height;
+                y: self.y + BULLET_SPRITE.height as i8, 
+                friendly: false,
+                sprite_height: BULLET_SPRITE.height,
+                sprite_width : BULLET_SPRITE.width,
+                vel_y: 2, // if friendly then vel_y is -ve
+                raw_image,
+                active:true,
+                parent:self,
+            }
+        )} else{
+            Err(())
         }
     }
 }
 
+// SAFETY: TODO: add a state to check weather parent is alive or not
+unsafe impl Send for Bullet{
+}

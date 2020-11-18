@@ -111,55 +111,37 @@ mod app {
     }
 
     #[task(binds = EXTI9_5, resources = [shoot, game, exti], priority = 2)]
-    fn exti9_5(mut c: exti9_5::Context){
+    fn exti9_5(c: exti9_5::Context){
         // if no ammo left then disable interrupt, until ammo gets recharged
-        let mut disable_intr = false;
+        let mut game = c.resources.game;
+        let mut shoot = c.resources.shoot;
         // spawn a bullet
-        c.resources.game.lock(|game:&mut GameObject|{
-            if game.player.shots_left > 0{
-                game.bullets.push(game.player.shoot()).expect("cant create more bullets");
-                game.player.shots_left -=1;
-            } else{
-                disable_intr = true;
-            }
-        });
-        let mut exti = c.resources.exti;
-        // clear interrupt
-        c.resources.shoot.lock(|button:&mut ButtonShoot|{
+        shoot.lock(|button:&mut ButtonShoot|{
+            // clear the interrput first
             button.clear_interrupt_pending_bit();
-            if disable_intr{
-                exti.lock(|exti:&mut EXTI|{
-                    button.disable_interrupt(exti);
-                });
-            }
+            game.lock(|game:&mut GameObject|{
+                match game.player.shoot(){
+                    // if player can shoot then push that bullet to bullets vector
+                    Ok(bullet)=> game.bullets.push(bullet).unwrap(),
+                    // TODO: if ammo is out then perform some action
+                    Err(_)=>{} 
+                };
+            });
         });
     }
 
     #[task(binds = TIM2, resources = [shoot, game, exti, timer2], priority = 2)]
     fn tim2(c: tim2::Context){
-        let mut exti = c.resources.exti;
         let mut game = c.resources.game;
-        let mut button = c.resources.shoot;
         let mut timer = c.resources.timer2;
         // if previosly interrupt is disabled then enable it,
-        let mut enable = false;
         game.lock(|game:&mut GameObject|{
-            if game.player.shots_left == 0{
-                enable = true;
-            }
-            game.player.shots_left +=1;
+            game.player.bullets_cnt -=1;
             // if ammo is more than max then set to max
-            if game.player.shots_left > game.player.max_shots(){
-                game.player.shots_left = game.player.max_shots();
+            if game.player.bullets_cnt < 0{
+                game.player.bullets_cnt = 0;
             }
         });
-        if enable {
-            button.lock(|button:&mut ButtonShoot|{
-                exti.lock(|exti:&mut EXTI|{
-                    button.enable_interrupt(exti);
-                })
-            })
-        }
         // clear interrupt
         timer.lock(|timer:&mut Timer<TIM2>|{
             timer.clear_interrupt(Event::TimeOut);
