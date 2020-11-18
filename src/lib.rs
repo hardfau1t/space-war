@@ -32,22 +32,15 @@ use embedded_graphics::{
 
 
 // structs 
-/// GameObject will contain all types of objects available in game to manage them from
-/// one place
-pub struct GameObject{
-    pub player:Player,
-    pub enemies:Vec<Enemy, U10>,
-    pub bullets:Vec<Bullet, U100>,
-    pub asteroids:Vec<Asteroids, U20>,
-    border: Styled<Rectangle, PrimitiveStyle<BinaryColor>>,
-}
 
-impl GameObject{
-    pub fn init()->Self{
+pub struct Game;
+
+impl Game{
+    pub fn init()->(Player,Vec<Enemy, U10>,Vec<Bullet, U100>,Vec<Asteroid, U20>, Screen ){
         // start the player in center 
         let player = Player::new(
-            (DISPLAY_WIDTH/2 - PLAYER_1_SPRITE.width/2 +1)as i16, 
-            (DISPLAY_HEIGHT - PLAYER_1_SPRITE.height - 1) as i16, // -1 for border
+            (DISPLAY_WIDTH/2 - PLAYER_1_SPRITE.width()/2 +1)as i16, 
+            (DISPLAY_HEIGHT - PLAYER_1_SPRITE.height() - 1) as i16, // -1 for border
             &PLAYER_1_SPRITE
         );
         // enemies
