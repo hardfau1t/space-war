@@ -11,8 +11,7 @@ use space_war as _;
 
 use space_war::{
     types::*,
-    GameObject,
-    game::Shooter,
+    GamePool,
 };
 
 use core::cell::RefCell;
@@ -40,8 +39,8 @@ mod app {
     use super::*;
     #[resources]
     struct Resources {
-        disp : RefCell<Option<Display>>,
-        game : space_war::GameObject,
+        disp : Display,
+        game : GamePool,
         delay: Delay,
         direct:(Left, Right), // direction
         shoot: ButtonShoot,
@@ -85,25 +84,27 @@ mod app {
         player_ammo_timer.listen(Event::TimeOut);
 
         // Used RefCell due to RTIC currently doesn't impliments double object lock at a time
-        let disp = RefCell::new(Some(disp));
 
-        let game = GameObject::init();
+        let game = GamePool::init(&disp);
         init::LateResources{ disp, game, delay, direct:(left, right), shoot, exti, timer2:player_ammo_timer}
     }
 
-    #[idle(resources = [&disp, game, delay, &direct])]
-    fn idle( mut c: idle::Context)->!{
+    #[idle(resources = [disp, game, delay, &direct])]
+    fn idle( c: idle::Context)->!{
         // it is the border of display
         let direct = c.resources.direct;
-        let mut display = c.resources.disp.replace(None).unwrap();
+        let mut game = c.resources.game;
+        let mut display = c.resources.disp;
         loop{
-            display.clear();
-            c.resources.game.lock(|game|{
+            game.lock(|game|{
                 game.spawn();
                 game.update(&direct);
-                game.draw(&mut display);
+                display.lock(|display:&mut Display|{
+                    game.draw(display);
+                    display.clear();
+                    display.flush().unwrap();
+                })
             });
-            display.flush().unwrap();
         }
             // delay.lock(|delay|{
             //     delay.delay_ms(1000/space_war::FPS_LIMIT);
@@ -119,13 +120,8 @@ mod app {
         shoot.lock(|button:&mut ButtonShoot|{
             // clear the interrput first
             button.clear_interrupt_pending_bit();
-            game.lock(|game:&mut GameObject|{
-                match game.player.shoot(){
-                    // if player can shoot then push that bullet to bullets vector
-                    Ok(bullet)=> game.bullets.push(bullet).unwrap(),
-                    // TODO: if ammo is out then perform some action
-                    Err(_)=>{} 
-                };
+            game.lock(|game:&mut GamePool|{
+                game.player.shoot();
             });
         });
     }
@@ -135,12 +131,9 @@ mod app {
         let mut game = c.resources.game;
         let mut timer = c.resources.timer2;
         // if previosly interrupt is disabled then enable it,
-        game.lock(|game:&mut GameObject|{
-            game.player.bullets_cnt -=1;
+        game.lock(|game:&mut GamePool|{
+            game.player.can_shoot = true
             // if ammo is more than max then set to max
-            if game.player.bullets_cnt < 0{
-                game.player.bullets_cnt = 0;
-            }
         });
         // clear interrupt
         timer.lock(|timer:&mut Timer<TIM2>|{

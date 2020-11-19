@@ -36,6 +36,4 @@ pub static ASTEROID_SPRITE: Sprite = Sprite{
 };
 
 // Constants
-pub const DISPLAY_WIDTH:u8 = 64;
-pub const DISPLAY_HEIGHT:u8 = 128;
 pub const FPS_LIMIT:u16      = 10;
