@@ -70,27 +70,27 @@ impl GamePool{
     /// spawns objects like enemies and asteroids, but not bullets
     pub fn spawn(&mut self) {
         // spawn asteroids
-        // while self.asteroids.len() == 0{
-        //     let asteroid = Asteroids::new((DISPLAY_WIDTH-&ASTEROID_SPRITE.width -2 ) as i16, 1 - ASTEROID_SPRITE.height as i16, &ASTEROID_SPRITE);
-        //     self.asteroids.push(
-        //         asteroid
-        //         ).expect("couldn't create enemy");
-        // }
+        while self.asteroids.len() == 0{
+            let asteroid = Asteroid::new((self.screen.width() - &ASTEROID_SPRITE.width -2 ) as i16, 1 - ASTEROID_SPRITE.height as i16, &ASTEROID_SPRITE);
+            self.asteroids.push(
+                asteroid
+                ).expect("couldn't create enemy");
+        }
         // spawn enemies
-        // while self.enemies.len() == 0{
-        //     let enemy = Enemy::new((self.screen.width()/2 -&ENEMY_SPRITE.width()/2 -1 ) as i16, 1 , &ENEMY_SPRITE);
-        //     self.enemies.push(
-        //         enemy
-        //         ).expect("couldn't create enemy");
-        // }
-        // // spawn enemy bullets
-        // for i in 0..self.enemies.len(){
-        //     if self.enemies[i].bullet_cool_down == 0{
-        //         if let Some(bullet) = self.enemies[i].shoot(){
-        //             self.bullets.push(bullet).unwrap();
-        //         }
-        //     }
-        // }
+        while self.enemies.len() == 0{
+            let enemy = Enemy::new((self.screen.width()/2 -&ENEMY_SPRITE.width()/2 -1 ) as i16, 1 , &ENEMY_SPRITE);
+            self.enemies.push(
+                enemy
+                ).expect("couldn't create enemy");
+        }
+        // spawn enemy bullets
+        for i in 0..self.enemies.len(){
+            if self.enemies[i].bullet_cool_down == 0{
+                if let Some(bullet) = self.enemies[i].shoot(){
+                    self.bullets.push(bullet).unwrap();
+                }
+            }
+        }
     }
     
     pub fn update(&mut self, direction: &(Left, Right)){
@@ -107,8 +107,8 @@ impl GamePool{
             self.player.bullets[index].update(&self.screen);
 
             // check if it is hitting anyone.
-            let (x1, y1) = self.bullets[index].get_pos();
-            let (x2, y2) = self.bullets[index].get_corner_pos();
+            let (x1, y1) = self.player.bullets[index].get_pos();
+            let (x2, y2) = self.player.bullets[index].get_corner_pos();
             let mut killed = false;
             for i in 0..self.enemies.len(){
                 let (x3, y3) = self.enemies[i].get_pos();
@@ -122,7 +122,7 @@ impl GamePool{
                 // next frame
                 if !(x3>x2 || x1 > x4 ||  y1 > y4 || y3 > y2) && self.enemies[i].is_active(){
                     // now these are overlapping
-                    self.bullets[index].active = false;
+                    self.player.bullets[index].active = false;
                     self.enemies[i].active = false;
                     killed = true;
                     break;
@@ -135,24 +135,27 @@ impl GamePool{
                     let (x4, y4) = self.asteroids[i].get_corner_pos();
                     if !(x3>x2 || x1 > x4 || y1 > y4 || y3 > y2)&& self.asteroids[i].is_active(){
                         // now these are overlapping
-                        self.bullets[index].active = false;
+                        self.player.bullets[index].active = false;
                         self.asteroids[i].active = false;
                         break;
                     }
                 }
             }
         }
+        // enemy bullets action
         for index in 0..self.bullets.len(){
-            defmt::debug!("open");
-            self.player.bullets[index].update(&self.screen);
-            defmt::debug!("close");
+            self.bullets[index].update(&self.screen);
 
             // check if it is hitting anyone.
             let (x1, y1) = self.bullets[index].get_pos();
             let (x2, y2) = self.bullets[index].get_corner_pos();
             // if the bullet is from opponent
             let (x3, y3) = self.player.get_pos();
+            // CHEAT: so that player hit box is reduced
+            let x3 = x3 + 1;
+            let y3 = y3 + 1;
             let (x4, y4) = self.player.get_corner_pos();
+            let x4 = x4 - 1;
             if !(x3>x2 || x1 > x4 || y1 > y4 || y3 > y2){
                 panic!("game over");
             }
@@ -179,24 +182,36 @@ impl GamePool{
         if !self.player.is_active(){
             todo!()
         }
-        for index in 0..self.player.bullets.len(){
+        let mut removed = 0;
+        for mut index in 0..self.player.bullets.len(){
+            index -= removed;
             if !self.player.bullets[index].is_active(){
                 self.player.bullets.swap_remove(index).bury();
+                removed +=1;
             }
         }
-        for index in 0..self.enemies.len(){
+        removed =0;
+        for mut index in 0..self.enemies.len(){
+            index -= removed;
             if !self.enemies[index].is_active(){
                 self.enemies.swap_remove(index).bury();
+                removed +=1;
             }
         }
-        for index in 0..self.bullets.len(){
+        removed =0;
+        for mut index in 0..self.bullets.len(){
+            index -= removed;
             if !self.bullets[index].is_active(){
                 self.bullets.swap_remove(index).bury();
+                removed +=1;
             }
         }
-        for index in 0..self.asteroids.len(){
+        removed =0;
+        for mut index in 0..self.asteroids.len(){
+            index -= removed;
             if !self.asteroids[index].is_active(){
                 self.asteroids.swap_remove(index).bury();
+                removed +=1;
             }
         }
     }
@@ -211,6 +226,9 @@ impl GamePool{
         }
         for index in 0..self.bullets.len(){
             self.bullets[index].draw(disp);
+        }
+        for index in 0..self.player.bullets.len(){
+            self.player.bullets[index].draw(disp);
         }
         for index in 0..self.asteroids.len(){
             self.asteroids[index].draw(disp);

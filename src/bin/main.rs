@@ -80,7 +80,7 @@ mod app {
         disp.set_rotation(DisplayRotation::Rotate270).unwrap();
 
         // initialize timer for player ammunition
-        let mut player_ammo_timer = Timer::tim2(c.device.TIM2, 1.hz(), clk, &mut rcc.apb1 );
+        let mut player_ammo_timer = Timer::tim2(c.device.TIM2, 2.hz(), clk, &mut rcc.apb1 );
         player_ammo_timer.listen(Event::TimeOut);
 
         // Used RefCell due to RTIC currently doesn't impliments double object lock at a time
@@ -99,9 +99,10 @@ mod app {
             game.lock(|game|{
                 game.spawn();
                 game.update(&direct);
+                game.collect();
                 display.lock(|display:&mut Display|{
-                    game.draw(display);
                     display.clear();
+                    game.draw(display);
                     display.flush().unwrap();
                 })
             });

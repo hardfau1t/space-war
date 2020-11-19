@@ -31,7 +31,6 @@ pub struct Player {
     pub active: bool,
     pub bullets:Vec<Bullet, U20>,
     pub can_shoot: bool,
-    max_shots:i8,
     raw_image: ImageRaw<'static, BinaryColor>,
 }
 
@@ -43,6 +42,7 @@ pub struct Enemy {
     raw_image: ImageRaw<'static, BinaryColor>,
     pub active:bool,
     pub bullet_cool_down: u16,
+    cool_down:u16,
 }
 
 #[derive(Debug)]
@@ -111,7 +111,7 @@ pub trait CanDraw{
 }
 // implementation Section
 impl Screen{
-    pub fn new(height:u8, width:u8, border:Styled<Rectangle, PrimitiveStyle<BinaryColor>>)->Self{
+    pub fn new(width:u8, height:u8, border:Styled<Rectangle, PrimitiveStyle<BinaryColor>>)->Self{
         Self{ height, width, border }
     }
     pub fn height(&self)->u8{
@@ -127,13 +127,13 @@ impl Player{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
         let bullets = Vec::new();
         Self{ x, y, vel_x:0, vel_y:0, raw_image,
-            active:true, max_shots:10, bullets,
+            active:true, bullets,
             can_shoot: true
         }
     }
     pub fn update(&mut self, dir:&(Left, Right), screen:&Screen) {
-        self.boundary_check(screen);
         self.mov(dir);
+        self.boundary_check(screen);
         self.x += self.vel_x;
         self.y += self.vel_y;
     }
@@ -163,7 +163,7 @@ impl Player{
     }
     pub fn shoot(&mut self){
         let raw_image = ImageRaw::new(BULLET_SPRITE.data, BULLET_SPRITE.width as u32, BULLET_SPRITE.height as u32);
-        if self.bullets.len() < self.max_shots as usize && self.can_shoot{
+        if self.can_shoot{
             match self.bullets.push(Bullet{
                 x:self.x + self.raw_image.width() as i16/2 - BULLET_SPRITE.width as i16/2,
                 // if object is friendly then y = y - bullet height else y = y+bullet height;
@@ -196,7 +196,7 @@ impl Player{
 impl Enemy{
     pub fn new(x:i16, y:i16, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
-        Self{ x, y, raw_image, active:true, bullet_cool_down:200}
+        Self{ x, y, raw_image, active:true, bullet_cool_down:40, cool_down:150}
     }
     pub fn update(&mut self) {
         // no need of boundary check for enemy
@@ -212,6 +212,7 @@ impl Enemy{
     pub fn shoot(&mut self)-> Option<Bullet>{
         let raw_image = ImageRaw::new(BULLET_SPRITE.data, BULLET_SPRITE.width as u32, BULLET_SPRITE.height as u32);
         if self.bullet_cool_down == 0{
+            self.bullet_cool_down = self.cool_down;
             Some(Bullet{
                 x:self.x + self.raw_image.width() as i16/2 - BULLET_SPRITE.width as i16/2,
                 // if object is friendly then y = y - bullet height else y = y+bullet height;
