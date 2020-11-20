@@ -14,8 +14,6 @@ use space_war::{
     GamePool,
 };
 
-use core::cell::RefCell;
-
 use rtic::app;
 
 use stm32f7xx_hal as _; 
@@ -25,7 +23,8 @@ use stm32f7xx_hal::{
     delay::Delay,
     gpio::{Edge, ExtiPin},
     timer::{Timer, Event},
-    pac::{EXTI, TIM2}
+    pac::{EXTI, TIM2},
+    rng::Rng,
 };
 
 use ssd1306::{
@@ -46,6 +45,7 @@ mod app {
         shoot: ButtonShoot,
         exti : EXTI,
         timer2: Timer<TIM2>,
+        rng: Rng,
     }
     #[init]
     fn init(c : init::Context)->init::LateResources {
@@ -64,6 +64,7 @@ mod app {
         shoot.trigger_on_edge(&mut exti, Edge::FALLING);
         shoot.enable_interrupt(&mut exti);
 
+        let rng = c.device.RNG.init();
         let mut rcc = rcc.constrain();
         // if clock is changed need to change timer delay too,
         let clk = rcc.cfgr.sysclk(32.mhz()).freeze();
@@ -83,21 +84,25 @@ mod app {
         let mut player_ammo_timer = Timer::tim2(c.device.TIM2, 2.hz(), clk, &mut rcc.apb1 );
         player_ammo_timer.listen(Event::TimeOut);
 
-        // Used RefCell due to RTIC currently doesn't impliments double object lock at a time
-
+        // set log level
         let game = GamePool::init(&disp);
-        init::LateResources{ disp, game, delay, direct:(left, right), shoot, exti, timer2:player_ammo_timer}
+        init::LateResources{ disp, game, delay, direct:(left, right), 
+            shoot, exti, timer2:player_ammo_timer, rng
+        }
     }
 
-    #[idle(resources = [disp, game, delay, &direct])]
+    #[idle(resources = [rng,disp, game, delay, &direct])]
     fn idle( c: idle::Context)->!{
         // it is the border of display
         let direct = c.resources.direct;
         let mut game = c.resources.game;
         let mut display = c.resources.disp;
+        let mut rng = c.resources.rng;
         loop{
             game.lock(|game|{
-                game.spawn();
+                rng.lock(|rng|{
+                    game.spawn(rng);
+                });
                 game.update(&direct);
                 game.collect();
                 display.lock(|display:&mut Display|{

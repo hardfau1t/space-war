@@ -26,7 +26,6 @@ use embedded_graphics::{
     pixelcolor::BinaryColor,
     primitives::Rectangle,
     style::PrimitiveStyle,
-    // drawable::Drawable,
 };
 
 
@@ -68,17 +67,38 @@ impl GamePool{
     }
 
     /// spawns objects like enemies and asteroids, but not bullets
-    pub fn spawn(&mut self) {
+    pub fn spawn(&mut self, rng:&mut stm32f7xx_hal::rng::Rng) {
         // spawn asteroids
         while self.asteroids.len() == 0{
-            let asteroid = Asteroid::new((self.screen.width() - &ASTEROID_SPRITE.width -2 ) as i16, 1 - ASTEROID_SPRITE.height as i16, &ASTEROID_SPRITE);
+        let x_pos = match rng.get_rand(){
+            Ok(val) => val% (self.screen.width() - &ASTEROID_SPRITE.width) as u32,
+            Err(_) => {
+                defmt::warn!("couldn't generate random value for asteroid. spawning will be corner");
+                0
+            },
+        };
+            let asteroid = Asteroid::new(
+                x_pos as i16,
+                1 - ASTEROID_SPRITE.height as i16,
+                &ASTEROID_SPRITE);
             self.asteroids.push(
                 asteroid
                 ).expect("couldn't create enemy");
         }
         // spawn enemies
         while self.enemies.len() == 0{
-            let enemy = Enemy::new((self.screen.width()/2 -&ENEMY_SPRITE.width()/2 -1 ) as i16, 1 , &ENEMY_SPRITE);
+            let rand_val:u32 = match rng.get_rand(){
+                Ok(val) => val,
+                Err(_)=>{
+                    // if cant generate random value then spawn in center
+                    defmt::warn!("couldn't generate random value for enemies. spawning will be center");
+                    (self.screen.width() as u32 / 2)<< 16 | (self.screen.height()as u32 / 2)
+                }
+            };
+            // let xpos:i16 = (self.screen.width()/2 -&ENEMY_SPRITE.width()/2 -1 ) as i16;
+            let xpos:i16 = ((rand_val >> 16 ) as u16 % (self.screen.width() - &ENEMY_SPRITE.width) as u16 + 1) as i16;
+            let ypos:i16 = ((rand_val >> 16 ) as u16 % (self.screen.width() - &ENEMY_SPRITE.width) as u16 + 1) as i16;
+            let enemy = Enemy::new(xpos, ypos , &ENEMY_SPRITE);
             self.enemies.push(
                 enemy
                 ).expect("couldn't create enemy");

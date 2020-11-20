@@ -19,7 +19,6 @@ use heapless::{
 };
 
 use stm32f7xx_hal::prelude::*;
-use defmt::*;
 
 // Structs definitions
 #[derive(Debug)]
@@ -164,10 +163,12 @@ impl Player{
     pub fn shoot(&mut self){
         let raw_image = ImageRaw::new(BULLET_SPRITE.data, BULLET_SPRITE.width as u32, BULLET_SPRITE.height as u32);
         if self.can_shoot{
+            let x = self.x + self.raw_image.width() as i16/2 - BULLET_SPRITE.width as i16/2;
+            // if object is friendly then y = y - bullet height else y = y+bullet height;
+            let y =  self.y - BULLET_SPRITE.height as i16; 
+            defmt::debug!("spawning friendly bullet at ({:?}, {:?})", x, y);
             match self.bullets.push(Bullet{
-                x:self.x + self.raw_image.width() as i16/2 - BULLET_SPRITE.width as i16/2,
-                // if object is friendly then y = y - bullet height else y = y+bullet height;
-                y: self.y - BULLET_SPRITE.height as i16, 
+                x,y,
                 friendly: true,
                 vel_y: -3, // if friendly then vel_y is -ve
                 vel_x:0,
@@ -196,6 +197,7 @@ impl Player{
 impl Enemy{
     pub fn new(x:i16, y:i16, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
+        defmt::debug!("spawn: Enemy at ({:?}, {:?})", x,y);
         Self{ x, y, raw_image, active:true, bullet_cool_down:40, cool_down:150}
     }
     pub fn update(&mut self) {
@@ -213,10 +215,12 @@ impl Enemy{
         let raw_image = ImageRaw::new(BULLET_SPRITE.data, BULLET_SPRITE.width as u32, BULLET_SPRITE.height as u32);
         if self.bullet_cool_down == 0{
             self.bullet_cool_down = self.cool_down;
+            let x = self.x + self.raw_image.width() as i16/2 - BULLET_SPRITE.width as i16/2;
+            // if object is friendly then y = y - bullet height else y = y+bullet height;
+            let y = self.y + BULLET_SPRITE.height as i16; 
+            defmt::debug!("spawning foes bullet at ({:?}, {:?})", x, y);
             Some(Bullet{
-                x:self.x + self.raw_image.width() as i16/2 - BULLET_SPRITE.width as i16/2,
-                // if object is friendly then y = y - bullet height else y = y+bullet height;
-                y: self.y + BULLET_SPRITE.height as i16, 
+                x,y,
                 friendly: false,
                 vel_y: 2, // if friendly then vel_y is -ve
                 vel_x:0,
@@ -262,6 +266,7 @@ impl Bullet{
 impl Asteroid{
     pub fn new(x:i16, y:i16, sprite: &Sprite)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
+        defmt::debug!("spawn: asteroid at ({:?}, {:?})", x,y);
         Self{ x, y, vel_x:-1, vel_y:1, raw_image, active:true}
     }
     pub fn update(&mut self, screen:&Screen) {
