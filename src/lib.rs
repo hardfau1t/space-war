@@ -8,6 +8,7 @@ pub mod objects;
 
 use heapless::{
     Vec,
+    String,
     consts::*,
 };
 
@@ -24,6 +25,7 @@ use panic_probe as _;
 use embedded_graphics::{
     prelude::*,
     fonts::{ Font6x8, Text },
+    image::Image,
     pixelcolor::BinaryColor,
     primitives::Rectangle,
     style::{PrimitiveStyle, TextStyle},
@@ -73,7 +75,7 @@ impl GamePool{
     /// spawns objects like enemies and asteroids, but not bullets
     pub fn spawn(&mut self, rng:&mut stm32f7xx_hal::rng::Rng) {
         // spawn asteroids
-        while self.asteroids.len() as u64 <= self.player.player_score/LEVEL_SCORE as u64{
+        while self.asteroids.len() as i16 <= self.player.player_score/LEVEL_SCORE as i16{
             // get random value for spawn position
             let random_val = match rng.get_rand(){
                 Ok(val) => val,
@@ -95,7 +97,7 @@ impl GamePool{
                 ).expect("couldn't create enemy");
         }
         // spawn enemies
-        while self.enemies.len() as u64 <= self.player.player_score/(LEVEL_SCORE*2) as u64{
+        while self.enemies.len() as i16 <= self.player.player_score/(LEVEL_SCORE*2) as i16{
             let rand_val:u32 = match rng.get_rand(){
                 Ok(val) => val,
                 Err(_)=>{
@@ -107,7 +109,7 @@ impl GamePool{
             // let xpos:i16 = (self.screen.width()/2 -&ENEMY_SPRITE.width()/2 -1 ) as i16;
             let xpos:i16 = ((rand_val >> 16 ) as u16 % (self.screen.width() - &ENEMY_SPRITE.width) as u16 + 1) as i16;
             let ypos:i16 = (rand_val as u16 % (self.screen.width() - &ENEMY_SPRITE.width) as u16 + 1) as i16;
-            let cooldown = LEVEL_SCORE as u64 - self.player.player_score % LEVEL_SCORE  as u64;
+            let cooldown = LEVEL_SCORE as i16 - self.player.player_score % LEVEL_SCORE  as i16;
             let enemy = Enemy::new(xpos, ypos , &ENEMY_SPRITE, cooldown as u16);
             self.enemies.push(
                 enemy
@@ -267,7 +269,34 @@ impl GamePool{
     }
     pub fn draw_stats(&self, disp:&mut Display){
         self.stats.border.draw(disp).unwrap();
-        self.stats.score.draw(disp).unwrap();
+        Image::new( 
+            &self.stats.score,
+            Point::new(3, self.screen.height() as i32 +3) )
+            .draw(disp)
+            .unwrap();
+        Image::new( 
+            &self.stats.ammo,
+            Point::new(42, self.screen.height() as i32 + 5) )
+            .draw(disp)
+            .unwrap();
+
+        // player score
+        let a:String<U6> = String::from(self.player.player_score);
+        Text::new(
+            a.as_str(),
+            Point::new(22, self.screen.height() as i32 + 4)
+            )
+            .into_styled(TextStyle::new(Font6x8, BinaryColor::On))
+            .draw(disp).unwrap();
+
+        // player ammo
+        let a:String<U6> = String::from((self.player.bullets.capacity() - self.player.bullets.len()) as i16);
+        Text::new(
+            a.as_str(),
+            Point::new(56, self.screen.height() as i32 + 4)
+            )
+            .into_styled(TextStyle::new(Font6x8, BinaryColor::On))
+            .draw(disp).unwrap();
     }
 }
 

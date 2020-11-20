@@ -29,9 +29,9 @@ pub struct Player {
     vel_x:i16,
     vel_y:i16,
     pub active: bool,
-    pub bullets:Vec<Bullet, U10>,
+    pub bullets:Vec<Bullet, U4>,
     raw_image: ImageRaw<'static, BinaryColor>,
-    pub player_score:u64,
+    pub player_score:i16,
     cool_down: u8,
 }
 
@@ -84,8 +84,8 @@ pub struct Screen{
 #[derive(Debug)]
 pub struct Stats{
     pub border: Styled<Rectangle, PrimitiveStyle<BinaryColor>>,
-    pub score:Styled<Text<'static>, TextStyle<BinaryColor, Font6x8>>,
-    // ammo:bool,
+    pub score:ImageRaw<'static, BinaryColor>,
+    pub ammo:ImageRaw<'static, BinaryColor>,
 }
 
 /// this is used for indicating boundary condition
@@ -99,7 +99,7 @@ pub trait Object{
     /// if objects is it will return false;
     fn is_active(&self)->bool;
     /// drops the object
-    fn bury(self, score:&mut u64);
+    fn bury(self, score:&mut i16);
 }
 
 /// enables movement for an object
@@ -324,11 +324,12 @@ impl Stats{
             .into_styled(
                 PrimitiveStyle::with_stroke(BinaryColor::On, 1)
                 );
-        let score = Text::new("score", Point::new(4, screen.height() as i32 + 3))
-            .into_styled(TextStyle::new(Font6x8, BinaryColor::On));
+        let score = ImageRaw::new(GUN.data, GUN.width.into(), GUN.height.into());
+        let ammo = ImageRaw::new(AMMO.data, AMMO.width.into(), AMMO.height.into());
         Self{
             border,
             score,
+            ammo,
         }
     }
 }
@@ -342,7 +343,7 @@ impl Object for Player {
     fn is_active(&self) ->bool {
         self.active
     }
-    fn bury(self, _:&mut u64){
+    fn bury(self, _:&mut i16){
         todo!()
     }
 
@@ -353,7 +354,7 @@ impl Object for Enemy {
     fn is_active(&self) ->bool {
         self.active
     }
-    fn bury(self, score: &mut u64){
+    fn bury(self, score: &mut i16){
         defmt::debug!("player score: {:?}", *score);
         *score +=1;
     }
@@ -363,7 +364,7 @@ impl Object for Bullet {
     fn is_active(&self) ->bool {
         self.active
     }
-    fn bury(self, _:&mut u64) {
+    fn bury(self, _:&mut i16) {
     }
 }
 
@@ -372,7 +373,7 @@ impl Object for Asteroid {
         self.active
     }
 
-    fn bury(self, score:&mut u64) {
+    fn bury(self, score:&mut i16) {
         *score +=1;
         defmt::debug!("player score: {:?}", *score);
     }

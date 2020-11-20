@@ -35,6 +35,18 @@ pub static ASTEROID_SPRITE: Sprite = Sprite{
     height  : 10,
 };
 
+pub static GUN: Sprite = Sprite{
+    data    : &[0x6e, 0x06, 0x3f, 0xfe, 0x3f, 0xfe, 0x3d, 0x00, 0x79, 0x00, 0x7f, 0x00, 0x70, 0x00, 0xf0, 0x00],
+    width   : 15,
+    height  : 8,
+};
+
+pub static AMMO: Sprite = Sprite{
+    data    : &[0xfe, 0x00, 0xff, 0x80, 0xff, 0xc0, 0xff, 0x80, 0xfe, 0x00],
+    width   : 10,
+    height  : 5,
+};
+
 // Constants
 pub const FPS_LIMIT:u16         = 10;
 pub const LEVEL_SCORE:u8        = 40;
