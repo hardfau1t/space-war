@@ -24,13 +24,14 @@ use panic_probe as _;
 
 use embedded_graphics::{
     prelude::*,
-    fonts::{ Font6x8, Text },
-    image::Image,
+    fonts::{ Font6x8, Text, Font8x16},
+    image::{Image, ImageRaw},
     pixelcolor::BinaryColor,
     primitives::Rectangle,
     style::{PrimitiveStyle, TextStyle},
 };
 
+use stm32f7xx_hal::prelude::*;
 
 // structs 
 
@@ -42,6 +43,7 @@ pub struct GamePool{
     asteroids: Vec<Asteroid, U20>,
     screen: Screen,
     stats: Stats,
+    status: bool,
 }
 impl GamePool{
     // This will return all necessory game objects
@@ -69,7 +71,7 @@ impl GamePool{
         let bullets:Vec<Bullet, U100> = Vec::new();
         let asteroids:Vec<Asteroid, U20> = Vec::new();
         let stats = Stats::new(&screen);
-        Self{player, enemies, bullets, asteroids, screen, stats}
+        Self{player, enemies, bullets, asteroids, screen, stats, status:true}
     }
 
     /// spawns objects like enemies and asteroids, but not bullets
@@ -190,7 +192,7 @@ impl GamePool{
             let (x4, y4) = self.player.get_corner_pos();
             let x4 = x4 - 1;
             if !(x3>x2 || x1 > x4 || y1 > y4 || y3 > y2){
-                panic!("game over");
+                self.status = false;
             }
         }
         // update asteroids position
@@ -204,8 +206,7 @@ impl GamePool{
             let (x4, y4) = self.player.get_corner_pos();
             if !(x3>x2 || x1 > x4 || y1 > y4 || y3 > y2){
                 // TODO: set the player to inactive and latery bury
-                defmt::debug!("game over");
-                panic!("game over");
+                self.status = false;
             }
         }
     }
@@ -298,6 +299,10 @@ impl GamePool{
             .into_styled(TextStyle::new(Font6x8, BinaryColor::On))
             .draw(disp).unwrap();
     }
+    
+    pub fn is_ok(&self)->bool{
+        !self.status
+    }
 }
 
 #[defmt::timestamp]
@@ -312,6 +317,60 @@ fn timestamp() -> u64 {
 pub fn exit() -> ! {
     loop {
         cortex_m::asm::bkpt();
+    }
+}
+
+
+pub fn final_screen(score:i16, disp:&mut Display, delay:&mut Delay)->!{
+    let image = ImageRaw::new( GUN.data, GUN.width() as u32, GUN.height() as u32);
+    let gun: Image<ImageRaw<BinaryColor>, BinaryColor> = Image::new(
+        &image,
+        Point::new(3, 118)
+        );
+    let score_txt :String<U6> = String::from(score);
+    let score_disp = Text::new(
+            score_txt.as_str(),
+            Point::new(22, 118)
+            )
+            .into_styled(TextStyle::new(Font6x8, BinaryColor::On)) ;
+    let score_info = Text::new(
+            score_txt.as_str(),
+            Point::new(
+                31 - (score_txt.len()as i32 *8)/2 ,
+                 93)
+            )
+            .into_styled(TextStyle::new(Font8x16, BinaryColor::On)) ;
+    let game = Text::new("Game", Point::new(5,20))
+        .into_styled(TextStyle::new(Font8x16, BinaryColor::On));
+    let over = Text::new("Over", Point::new(28, 50))
+        .into_styled(TextStyle::new(Font8x16, BinaryColor::On));
+
+    let border = Rectangle::new(
+        Point::zero(), Point::new(63, 127))
+        .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1));
+
+    let sub = Text::new("you score", Point::new(7, 80))
+        .into_styled(TextStyle::new(Font6x8, BinaryColor::On));
+    loop{
+        disp.clear();
+        border.draw(disp).unwrap();
+        game.draw(disp).unwrap();
+        gun.draw(disp).unwrap();
+        score_disp.draw(disp).unwrap();
+        score_info.draw(disp).unwrap();
+        sub.draw(disp).unwrap();
+        disp.flush().unwrap();
+        delay.delay_ms(700u16);
+
+        disp.clear();
+        border.draw(disp).unwrap();
+        over.draw(disp).unwrap();
+        gun.draw(disp).unwrap();
+        score_disp.draw(disp).unwrap();
+        score_info.draw(disp).unwrap();
+        sub.draw(disp).unwrap();
+        disp.flush().unwrap();
+        delay.delay_ms(700u16);
     }
 }
 

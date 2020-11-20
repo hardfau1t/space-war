@@ -33,7 +33,7 @@ use ssd1306::{
     Builder,
 };
 
-#[app(device = stm32f7xx_hal::pac, peripherals=true)]
+#[app(device = stm32f7xx_hal::pac, peripherals=true, dispatchers = [SPI4])]
 mod app {
     use super::*;
     #[resources]
@@ -112,20 +112,18 @@ mod app {
                     game.draw(display);
                     game.draw_stats(display);
                     display.flush().unwrap();
-                })
+                });
+                if game.is_ok(){
+                    game_over::spawn().unwrap();
+                };
             });
         }
-            // delay.lock(|delay|{
-            //     delay.delay_ms(1000/space_war::FPS_LIMIT);
-            // });
     }
 
     #[task(binds = EXTI9_5, resources = [shoot, game, exti, timer2], priority = 2)]
     fn exti9_5(c: exti9_5::Context){
-        // if no ammo left then disable interrupt, until ammo gets recharged
         let mut game = c.resources.game;
         let mut shoot = c.resources.shoot;
-        // let mut timer2 = c.resources.timer2;
         // spawn a bullet
         shoot.lock(|button:&mut ButtonShoot|{
             // clear the interrput first
@@ -133,27 +131,23 @@ mod app {
             game.lock(|game:&mut GamePool|{
                 if game.player.can_shoot(){
                     game.player.shoot();
-                    // timer2.lock(|timer:&mut Timer<TIM2>|{
-                    //     timer.listen(Event::TimeOut);
-                    // })
                 }
             });
         });
     }
 
-    // #[task(binds = TIM2, resources = [shoot, game, exti, timer2], priority = 3)]
-    // fn tim2(c: tim2::Context){
-    //     let mut game = c.resources.game;
-    //     let mut timer = c.resources.timer2;
-    //     // if previosly interrupt is disabled then enable it,
-    //     game.lock(|game:&mut GamePool|{
-    //         game.player.can_shoot = true
-    //         // if ammo is more than max then set to max
-    //     });
-    //     // clear interrupt
-    //     timer.lock(|timer:&mut Timer<TIM2>|{
-    //         timer.clear_interrupt(Event::TimeOut);
-    //         timer.unlisten(Event::TimeOut);
-    //     });
-    // }
+    #[task(resources = [game, disp, delay], priority = 4)]
+    fn game_over(c:game_over::Context){
+        let mut game = c.resources.game;
+        let score = game.lock(|game|{
+            game.player.player_score
+        });
+        let mut display = c.resources.disp;
+        let mut delay = c.resources.delay;
+        display.lock(|display|{
+            delay.lock(|delay|{
+                space_war::final_screen(score, display, delay);
+            })
+        })
+    }
 }

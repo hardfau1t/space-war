@@ -12,3 +12,4 @@ pub type Display = ssd1306::mode::GraphicsMode<I2CInterface<stm32f7xx_hal::i2c::
 pub type Left = PF2<Input<PullUp>>;
 pub type Right = PF9<Input<PullUp>>;
 pub type ButtonShoot = PF8<Input<PullUp>>;
+pub type Delay = stm32f7xx_hal::delay::Delay;
