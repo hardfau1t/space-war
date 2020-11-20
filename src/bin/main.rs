@@ -81,8 +81,10 @@ mod app {
         disp.set_rotation(DisplayRotation::Rotate270).unwrap();
 
         // initialize timer for player ammunition
-        let mut player_ammo_timer = Timer::tim2(c.device.TIM2, 2.hz(), clk, &mut rcc.apb1 );
+        let mut player_ammo_timer = Timer::tim2(c.device.TIM2, 1.hz(), clk, &mut rcc.apb1 );
         player_ammo_timer.listen(Event::TimeOut);
+        defmt::debug!("val {:?}",unsafe{ (&*stm32f7xx_hal::pac::TIM2::ptr()).cnt.read().bits() });
+        // panic!("oeuth");
 
         // set log level
         let game = GamePool::init(&disp);
@@ -117,17 +119,23 @@ mod app {
             // });
     }
 
-    #[task(binds = EXTI9_5, resources = [shoot, game, exti], priority = 2)]
+    #[task(binds = EXTI9_5, resources = [shoot, game, exti, timer2], priority = 2)]
     fn exti9_5(c: exti9_5::Context){
         // if no ammo left then disable interrupt, until ammo gets recharged
         let mut game = c.resources.game;
         let mut shoot = c.resources.shoot;
+        let mut timer2 = c.resources.timer2;
         // spawn a bullet
         shoot.lock(|button:&mut ButtonShoot|{
             // clear the interrput first
             button.clear_interrupt_pending_bit();
             game.lock(|game:&mut GamePool|{
-                game.player.shoot();
+                if game.player.can_shoot{
+                    game.player.shoot();
+                    timer2.lock(|timer:&mut Timer<TIM2>|{
+                        timer.listen(Event::TimeOut);
+                    })
+                }
             });
         });
     }
@@ -144,6 +152,7 @@ mod app {
         // clear interrupt
         timer.lock(|timer:&mut Timer<TIM2>|{
             timer.clear_interrupt(Event::TimeOut);
+            timer.unlisten(Event::TimeOut);
         });
     }
 }

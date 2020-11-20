@@ -69,14 +69,16 @@ impl GamePool{
     /// spawns objects like enemies and asteroids, but not bullets
     pub fn spawn(&mut self, rng:&mut stm32f7xx_hal::rng::Rng) {
         // spawn asteroids
-        while self.asteroids.len() == 0{
-        let x_pos = match rng.get_rand(){
-            Ok(val) => val% (self.screen.width() - &ASTEROID_SPRITE.width) as u32,
-            Err(_) => {
-                defmt::warn!("couldn't generate random value for asteroid. spawning will be corner");
-                0
-            },
-        };
+        while self.asteroids.len() as u64 <= self.player.player_score/LEVEL_SCORE as u64{
+            // get random value for spawn position
+            let x_pos = match rng.get_rand(){
+                Ok(val) => val% (self.screen.width() - &ASTEROID_SPRITE.width) as u32,
+                Err(_) => {
+                    defmt::warn!("couldn't generate random value for asteroid. spawning will be corner");
+                    0
+                },
+            };
+            // spawn asteroid
             let asteroid = Asteroid::new(
                 x_pos as i16,
                 1 - ASTEROID_SPRITE.height as i16,
@@ -86,7 +88,7 @@ impl GamePool{
                 ).expect("couldn't create enemy");
         }
         // spawn enemies
-        while self.enemies.len() == 0{
+        while self.enemies.len() as u64 <= self.player.player_score/(LEVEL_SCORE*2) as u64{
             let rand_val:u32 = match rng.get_rand(){
                 Ok(val) => val,
                 Err(_)=>{
@@ -98,7 +100,8 @@ impl GamePool{
             // let xpos:i16 = (self.screen.width()/2 -&ENEMY_SPRITE.width()/2 -1 ) as i16;
             let xpos:i16 = ((rand_val >> 16 ) as u16 % (self.screen.width() - &ENEMY_SPRITE.width) as u16 + 1) as i16;
             let ypos:i16 = ((rand_val >> 16 ) as u16 % (self.screen.width() - &ENEMY_SPRITE.width) as u16 + 1) as i16;
-            let enemy = Enemy::new(xpos, ypos , &ENEMY_SPRITE);
+            let cooldown = LEVEL_SCORE as u64 - self.player.player_score % LEVEL_SCORE  as u64;
+            let enemy = Enemy::new(xpos, ypos , &ENEMY_SPRITE, cooldown as u16);
             self.enemies.push(
                 enemy
                 ).expect("couldn't create enemy");
@@ -114,6 +117,7 @@ impl GamePool{
     }
     
     pub fn update(&mut self, direction: &(Left, Right)){
+        // update enemy bullet spawn speed
         // update player
         self.player.update(direction, &self.screen);
         
@@ -206,7 +210,7 @@ impl GamePool{
         for mut index in 0..self.player.bullets.len(){
             index -= removed;
             if !self.player.bullets[index].is_active(){
-                self.player.bullets.swap_remove(index).bury();
+                self.player.bullets.swap_remove(index);
                 removed +=1;
             }
         }
@@ -214,7 +218,7 @@ impl GamePool{
         for mut index in 0..self.enemies.len(){
             index -= removed;
             if !self.enemies[index].is_active(){
-                self.enemies.swap_remove(index).bury();
+                self.enemies.swap_remove(index).bury(&mut self.player.player_score);
                 removed +=1;
             }
         }
@@ -222,7 +226,7 @@ impl GamePool{
         for mut index in 0..self.bullets.len(){
             index -= removed;
             if !self.bullets[index].is_active(){
-                self.bullets.swap_remove(index).bury();
+                self.bullets.swap_remove(index);
                 removed +=1;
             }
         }
@@ -230,7 +234,7 @@ impl GamePool{
         for mut index in 0..self.asteroids.len(){
             index -= removed;
             if !self.asteroids[index].is_active(){
-                self.asteroids.swap_remove(index).bury();
+                self.asteroids.swap_remove(index).bury(&mut self.player.player_score);
                 removed +=1;
             }
         }

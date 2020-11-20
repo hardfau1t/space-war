@@ -31,6 +31,7 @@ pub struct Player {
     pub bullets:Vec<Bullet, U20>,
     pub can_shoot: bool,
     raw_image: ImageRaw<'static, BinaryColor>,
+    pub player_score:u64,
 }
 
 #[derive(Debug)]
@@ -90,7 +91,7 @@ pub trait Object{
     /// if objects is it will return false;
     fn is_active(&self)->bool;
     /// drops the object
-    fn bury(self);
+    fn bury(self, score:&mut u64);
 }
 
 /// enables movement for an object
@@ -127,7 +128,8 @@ impl Player{
         let bullets = Vec::new();
         Self{ x, y, vel_x:0, vel_y:0, raw_image,
             active:true, bullets,
-            can_shoot: true
+            can_shoot: true,
+            player_score:0,
         }
     }
     pub fn update(&mut self, dir:&(Left, Right), screen:&Screen) {
@@ -140,7 +142,7 @@ impl Player{
         // check if left button is pressed,
         if let Ok(left) = dir.0.is_low(){
             if left{
-                self.vel_x = -1;
+                self.vel_x = -2;
                 // when left is pressed but right is not
                 // then velocity will be 0. to bypass that we return early
                 return;
@@ -150,7 +152,7 @@ impl Player{
         }
         if let Ok(right) = dir.1.is_low(){
             if right{
-                self.vel_x = 1;
+                self.vel_x = 2;
             } else {
                 self.vel_x = 0;
             }
@@ -162,23 +164,21 @@ impl Player{
     }
     pub fn shoot(&mut self){
         let raw_image = ImageRaw::new(BULLET_SPRITE.data, BULLET_SPRITE.width as u32, BULLET_SPRITE.height as u32);
-        if self.can_shoot{
-            let x = self.x + self.raw_image.width() as i16/2 - BULLET_SPRITE.width as i16/2;
-            // if object is friendly then y = y - bullet height else y = y+bullet height;
-            let y =  self.y - BULLET_SPRITE.height as i16; 
-            defmt::debug!("spawning friendly bullet at ({:?}, {:?})", x, y);
-            match self.bullets.push(Bullet{
-                x,y,
-                friendly: true,
-                vel_y: -3, // if friendly then vel_y is -ve
-                vel_x:0,
-                raw_image,
-                active:true,
-            }){
-                Ok(_)=>self.can_shoot = false,
-                Err(_)=>{}
-            };
-        }
+        let x = self.x + self.raw_image.width() as i16/2 - BULLET_SPRITE.width as i16/2;
+        // if object is friendly then y = y - bullet height else y = y+bullet height;
+        let y =  self.y - BULLET_SPRITE.height as i16; 
+        defmt::debug!("spawning friendly bullet at ({:?}, {:?})", x, y);
+        match self.bullets.push(Bullet{
+            x,y,
+            friendly: true,
+            vel_y: -3, // if friendly then vel_y is -ve
+            vel_x:0,
+            raw_image,
+            active:true,
+        }){
+            Ok(_)=>self.can_shoot = false,
+            Err(_)=>{}
+        };
     }
     fn boundary_check(&mut self, screen:&Screen) {
         // check on both right upper corner and left lower corner if anyone of them crosses the
@@ -195,10 +195,10 @@ impl Player{
 }
 
 impl Enemy{
-    pub fn new(x:i16, y:i16, sprite: &Sprite)->Self{
+    pub fn new(x:i16, y:i16, sprite: &Sprite, cool_down:u16)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
         defmt::debug!("spawn: Enemy at ({:?}, {:?})", x,y);
-        Self{ x, y, raw_image, active:true, bullet_cool_down:40, cool_down:150}
+        Self{ x, y, raw_image, active:true, bullet_cool_down:40, cool_down:cool_down*2+50}
     }
     pub fn update(&mut self) {
         // no need of boundary check for enemy
@@ -308,7 +308,7 @@ impl Object for Player {
     fn is_active(&self) ->bool {
         self.active
     }
-    fn bury(self){
+    fn bury(self, _:&mut u64){
         todo!()
     }
 
@@ -319,7 +319,9 @@ impl Object for Enemy {
     fn is_active(&self) ->bool {
         self.active
     }
-    fn bury(self){
+    fn bury(self, score: &mut u64){
+        defmt::debug!("player score: {:?}", *score);
+        *score +=1;
     }
 }
 
@@ -327,8 +329,7 @@ impl Object for Bullet {
     fn is_active(&self) ->bool {
         self.active
     }
-
-    fn bury(self) {
+    fn bury(self, _:&mut u64) {
     }
 }
 
@@ -337,7 +338,9 @@ impl Object for Asteroid {
         self.active
     }
 
-    fn bury(self) {
+    fn bury(self, score:&mut u64) {
+        *score +=1;
+        defmt::debug!("player score: {:?}", *score);
     }
 }
 
