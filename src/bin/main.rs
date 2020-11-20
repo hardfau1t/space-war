@@ -124,35 +124,35 @@ mod app {
         // if no ammo left then disable interrupt, until ammo gets recharged
         let mut game = c.resources.game;
         let mut shoot = c.resources.shoot;
-        let mut timer2 = c.resources.timer2;
+        // let mut timer2 = c.resources.timer2;
         // spawn a bullet
         shoot.lock(|button:&mut ButtonShoot|{
             // clear the interrput first
             button.clear_interrupt_pending_bit();
             game.lock(|game:&mut GamePool|{
-                if game.player.can_shoot{
+                if game.player.can_shoot(){
                     game.player.shoot();
-                    timer2.lock(|timer:&mut Timer<TIM2>|{
-                        timer.listen(Event::TimeOut);
-                    })
+                    // timer2.lock(|timer:&mut Timer<TIM2>|{
+                    //     timer.listen(Event::TimeOut);
+                    // })
                 }
             });
         });
     }
 
-    #[task(binds = TIM2, resources = [shoot, game, exti, timer2], priority = 2)]
-    fn tim2(c: tim2::Context){
-        let mut game = c.resources.game;
-        let mut timer = c.resources.timer2;
-        // if previosly interrupt is disabled then enable it,
-        game.lock(|game:&mut GamePool|{
-            game.player.can_shoot = true
-            // if ammo is more than max then set to max
-        });
-        // clear interrupt
-        timer.lock(|timer:&mut Timer<TIM2>|{
-            timer.clear_interrupt(Event::TimeOut);
-            timer.unlisten(Event::TimeOut);
-        });
-    }
+    // #[task(binds = TIM2, resources = [shoot, game, exti, timer2], priority = 3)]
+    // fn tim2(c: tim2::Context){
+    //     let mut game = c.resources.game;
+    //     let mut timer = c.resources.timer2;
+    //     // if previosly interrupt is disabled then enable it,
+    //     game.lock(|game:&mut GamePool|{
+    //         game.player.can_shoot = true
+    //         // if ammo is more than max then set to max
+    //     });
+    //     // clear interrupt
+    //     timer.lock(|timer:&mut Timer<TIM2>|{
+    //         timer.clear_interrupt(Event::TimeOut);
+    //         timer.unlisten(Event::TimeOut);
+    //     });
+    // }
 }

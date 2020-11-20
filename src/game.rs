@@ -28,10 +28,10 @@ pub struct Player {
     vel_x:i16,
     vel_y:i16,
     pub active: bool,
-    pub bullets:Vec<Bullet, U20>,
-    pub can_shoot: bool,
+    pub bullets:Vec<Bullet, U10>,
     raw_image: ImageRaw<'static, BinaryColor>,
     pub player_score:u64,
+    cool_down: u8,
 }
 
 #[derive(Debug)]
@@ -128,11 +128,14 @@ impl Player{
         let bullets = Vec::new();
         Self{ x, y, vel_x:0, vel_y:0, raw_image,
             active:true, bullets,
-            can_shoot: true,
             player_score:0,
+            cool_down:0,
         }
     }
     pub fn update(&mut self, dir:&(Left, Right), screen:&Screen) {
+        if self.cool_down !=0{
+            self.cool_down -=1;
+        }
         self.mov(dir);
         self.boundary_check(screen);
         self.x += self.vel_x;
@@ -168,7 +171,7 @@ impl Player{
         // if object is friendly then y = y - bullet height else y = y+bullet height;
         let y =  self.y - BULLET_SPRITE.height as i16; 
         defmt::debug!("spawning friendly bullet at ({:?}, {:?})", x, y);
-        match self.bullets.push(Bullet{
+        self.cool_down = match self.bullets.push(Bullet{
             x,y,
             friendly: true,
             vel_y: -3, // if friendly then vel_y is -ve
@@ -176,8 +179,9 @@ impl Player{
             raw_image,
             active:true,
         }){
-            Ok(_)=>self.can_shoot = false,
-            Err(_)=>{}
+            // Ok(_r=>{},
+            Ok(_)=> PLAYER_COOL_DOWN,
+            Err(_)=>0,
         };
     }
     fn boundary_check(&mut self, screen:&Screen) {
@@ -188,9 +192,12 @@ impl Player{
         //
         // we are taking new position, if not player will get stuck on hitting border
         let new_pos = self.x + self.vel_x;
-        if new_pos <= 1  || new_pos + self.raw_image.width() as i16 >= screen.width as i16 {
+        if new_pos <= 1 - self.raw_image.width()as i16/2  || new_pos + self.raw_image.width()as i16/2   >= screen.width as i16 {
             self.vel_x = 0;
         }
+    }
+    pub fn can_shoot(&self)->bool{
+        self.cool_down == 0
     }
 }
 
@@ -264,10 +271,12 @@ impl Bullet{
 }
 
 impl Asteroid{
-    pub fn new(x:i16, y:i16, sprite: &Sprite)->Self{
+    pub fn new(x:i16, y:i16, sprite: &Sprite, random_val:u32)->Self{
         let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
+
+        let vel_x = (random_val % 3)as i8 - 1;
         defmt::debug!("spawn: asteroid at ({:?}, {:?})", x,y);
-        Self{ x, y, vel_x:-1, vel_y:1, raw_image, active:true}
+        Self{ x, y, vel_x , vel_y:1, raw_image, active:true}
     }
     pub fn update(&mut self, screen:&Screen) {
         self.boundary_check(screen);

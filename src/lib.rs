@@ -71,18 +71,21 @@ impl GamePool{
         // spawn asteroids
         while self.asteroids.len() as u64 <= self.player.player_score/LEVEL_SCORE as u64{
             // get random value for spawn position
-            let x_pos = match rng.get_rand(){
-                Ok(val) => val% (self.screen.width() - &ASTEROID_SPRITE.width) as u32,
+            let random_val = match rng.get_rand(){
+                Ok(val) => val,
                 Err(_) => {
                     defmt::warn!("couldn't generate random value for asteroid. spawning will be corner");
                     0
                 },
             };
+            let x_pos = random_val% (self.screen.width() - &ASTEROID_SPRITE.width) as u32;
             // spawn asteroid
             let asteroid = Asteroid::new(
                 x_pos as i16,
                 1 - ASTEROID_SPRITE.height as i16,
-                &ASTEROID_SPRITE);
+                &ASTEROID_SPRITE,
+                random_val
+                );
             self.asteroids.push(
                 asteroid
                 ).expect("couldn't create enemy");
@@ -99,7 +102,7 @@ impl GamePool{
             };
             // let xpos:i16 = (self.screen.width()/2 -&ENEMY_SPRITE.width()/2 -1 ) as i16;
             let xpos:i16 = ((rand_val >> 16 ) as u16 % (self.screen.width() - &ENEMY_SPRITE.width) as u16 + 1) as i16;
-            let ypos:i16 = ((rand_val >> 16 ) as u16 % (self.screen.width() - &ENEMY_SPRITE.width) as u16 + 1) as i16;
+            let ypos:i16 = (rand_val as u16 % (self.screen.width() - &ENEMY_SPRITE.width) as u16 + 1) as i16;
             let cooldown = LEVEL_SCORE as u64 - self.player.player_score % LEVEL_SCORE  as u64;
             let enemy = Enemy::new(xpos, ypos , &ENEMY_SPRITE, cooldown as u16);
             self.enemies.push(
