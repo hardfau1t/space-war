@@ -23,9 +23,10 @@ use panic_probe as _;
 
 use embedded_graphics::{
     prelude::*,
+    fonts::{ Font6x8, Text },
     pixelcolor::BinaryColor,
     primitives::Rectangle,
-    style::PrimitiveStyle,
+    style::{PrimitiveStyle, TextStyle},
 };
 
 
@@ -38,11 +39,13 @@ pub struct GamePool{
     bullets:Vec<Bullet, U100>,
     asteroids: Vec<Asteroid, U20>,
     screen: Screen,
+    stats: Stats,
 }
 impl GamePool{
     // This will return all necessory game objects
     pub fn init(disp:&Display)->Self{
         let (disp_width, disp_height )= disp.get_dimensions();
+        let disp_height = disp_height - 12;
         let border = Rectangle::new(
             Point::zero(), Point::new( (disp_width - 1 ) as i32, (disp_height - 1) as i32))
             .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1));
@@ -63,7 +66,8 @@ impl GamePool{
         let enemies:Vec<Enemy, U10> = Vec::new();
         let bullets:Vec<Bullet, U100> = Vec::new();
         let asteroids:Vec<Asteroid, U20> = Vec::new();
-        Self{player, enemies, bullets, asteroids, screen}
+        let stats = Stats::new(&screen);
+        Self{player, enemies, bullets, asteroids, screen, stats}
     }
 
     /// spawns objects like enemies and asteroids, but not bullets
@@ -260,6 +264,10 @@ impl GamePool{
         for index in 0..self.asteroids.len(){
             self.asteroids[index].draw(disp);
         }
+    }
+    pub fn draw_stats(&self, disp:&mut Display){
+        self.stats.border.draw(disp).unwrap();
+        self.stats.score.draw(disp).unwrap();
     }
 }
 

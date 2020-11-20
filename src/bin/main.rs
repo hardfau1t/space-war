@@ -110,6 +110,7 @@ mod app {
                 display.lock(|display:&mut Display|{
                     display.clear();
                     game.draw(display);
+                    game.draw_stats(display);
                     display.flush().unwrap();
                 })
             });

@@ -7,9 +7,10 @@ use embedded_graphics::{
     prelude::*,
     pixelcolor::BinaryColor,
     image::{Image, ImageRaw},
+    fonts::{ Font6x8, Text },
     drawable::Drawable,
     style::Styled,
-    style::PrimitiveStyle,
+    style::{PrimitiveStyle, TextStyle},
     primitives::Rectangle,
 };
 
@@ -78,6 +79,13 @@ pub struct Screen{
     width:u8,
     height:u8,
     border: Styled<Rectangle, PrimitiveStyle<BinaryColor>>,
+}
+
+#[derive(Debug)]
+pub struct Stats{
+    pub border: Styled<Rectangle, PrimitiveStyle<BinaryColor>>,
+    pub score:Styled<Text<'static>, TextStyle<BinaryColor, Font6x8>>,
+    // ammo:bool,
 }
 
 /// this is used for indicating boundary condition
@@ -305,6 +313,23 @@ impl Sprite{
     }
     pub fn width(&self)->u8{
         self.width
+    }
+}
+
+impl Stats{
+    pub fn new(screen: &Screen)->Self{
+        let border = Rectangle::new(
+            Point::new(0,screen.height() as i32 +1), Point::new(screen.width as i32 + 1, screen.height() as i32 + 12)
+            )
+            .into_styled(
+                PrimitiveStyle::with_stroke(BinaryColor::On, 1)
+                );
+        let score = Text::new("score", Point::new(4, screen.height() as i32 + 3))
+            .into_styled(TextStyle::new(Font6x8, BinaryColor::On));
+        Self{
+            border,
+            score,
+        }
     }
 }
 
