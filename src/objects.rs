@@ -50,4 +50,3 @@ pub static AMMO: Sprite = Sprite{
 // Constants
 pub const FPS_LIMIT:u16         = 10;
 pub const LEVEL_SCORE:u8        = 40;
-pub const PLAYER_COOL_DOWN:u8   = 10;

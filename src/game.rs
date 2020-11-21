@@ -28,10 +28,9 @@ pub struct Player {
     vel_x:i16,
     vel_y:i16,
     pub active: bool,
-    pub bullets:Vec<Bullet, U4>,
+    pub bullets:Vec<Bullet, U3>,
     raw_image: ImageRaw<'static, BinaryColor>,
     pub player_score:i16,
-    cool_down: u8,
 }
 
 #[derive(Debug)]
@@ -136,13 +135,9 @@ impl Player{
         Self{ x, y, vel_x:0, vel_y:0, raw_image,
             active:true, bullets,
             player_score:0,
-            cool_down:0,
         }
     }
     pub fn update(&mut self, dir:&(Left, Right), screen:&Screen) {
-        if self.cool_down !=0{
-            self.cool_down -=1;
-        }
         self.mov(dir);
         self.boundary_check(screen);
         self.x += self.vel_x;
@@ -177,8 +172,7 @@ impl Player{
         let x = self.x + self.raw_image.width() as i16/2 - BULLET_SPRITE.width as i16/2;
         // if object is friendly then y = y - bullet height else y = y+bullet height;
         let y =  self.y - BULLET_SPRITE.height as i16; 
-        defmt::debug!("spawning friendly bullet at ({:?}, {:?})", x, y);
-        self.cool_down = match self.bullets.push(Bullet{
+       match self.bullets.push(Bullet{
             x,y,
             friendly: true,
             vel_y: -3, // if friendly then vel_y is -ve
@@ -186,10 +180,9 @@ impl Player{
             raw_image,
             active:true,
         }){
-            // Ok(_r=>{},
-            Ok(_)=> PLAYER_COOL_DOWN,
-            Err(_)=>0,
-        };
+           Ok(_) => defmt::debug!("spawning friendly bullet at ({:?}, {:?})", x, y),
+           Err(_)=> defmt::debug!("cant create bullet capacity full"),
+       };
     }
     fn boundary_check(&mut self, screen:&Screen) {
         // check on both right upper corner and left lower corner if anyone of them crosses the
@@ -204,7 +197,7 @@ impl Player{
         }
     }
     pub fn can_shoot(&self)->bool{
-        self.cool_down == 0
+        self.bullets.capacity() > self.bullets.len()
     }
 }
 
