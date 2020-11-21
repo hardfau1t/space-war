@@ -374,6 +374,13 @@ pub fn final_screen(score:i16, disp:&mut Display, delay:&mut Delay)->!{
     }
 }
 
+pub fn display_pause(disp:&mut Display){
+    Text::new("Paused", Point::new(8, 56))
+        .into_styled(TextStyle::new(Font8x16, BinaryColor::On))
+        .draw(disp).unwrap();
+    disp.flush().unwrap();
+}
+
 // #[panic_handler]
 // fn panic_handle(info: &PanicInfo)->!{
 //     defmt::debug!("{:?}", info;

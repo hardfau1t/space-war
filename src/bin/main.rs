@@ -33,7 +33,7 @@ use ssd1306::{
     Builder,
 };
 
-#[app(device = stm32f7xx_hal::pac, peripherals=true, dispatchers = [SPI4])]
+#[app(device = stm32f7xx_hal::pac, peripherals=true, dispatchers = [SPI4, SPI5])]
 mod app {
     use super::*;
     #[resources]
@@ -46,6 +46,7 @@ mod app {
         exti : EXTI,
         timer2: Timer<TIM2>,
         rng: Rng,
+        pause: Pause,
     }
     #[init]
     fn init(c : init::Context)->init::LateResources {
@@ -57,12 +58,19 @@ mod app {
         // pins assigning
         let sda = gpiof.pf0.into_alternate_af4().set_open_drain();
         let scl = gpiof.pf1.into_alternate_af4().set_open_drain();
-        let left = gpiof.pf2.into_pull_up_input();
-        let right = gpiof.pf9.into_pull_up_input();
-        let mut shoot = gpiof.pf8.into_pull_up_input();
+        let left = gpiof.pf9.into_pull_up_input();
+        let right = gpiof.pf8.into_pull_up_input();
+        let mut shoot = gpiof.pf2.into_pull_up_input();
         shoot.make_interrupt_source(&mut syscfg, &mut rcc) ;
         shoot.trigger_on_edge(&mut exti, Edge::FALLING);
         shoot.enable_interrupt(&mut exti);
+
+        // pause button
+        let mut pause = gpiof.pf6.into_pull_up_input();
+        pause.make_interrupt_source(&mut syscfg, &mut rcc);
+        pause.trigger_on_edge(&mut exti, Edge::FALLING);
+        // NOTE: pause currently disabled
+        // pause.enable_interrupt(&mut exti);
 
         let rng = c.device.RNG.init();
         let mut rcc = rcc.constrain();
@@ -89,7 +97,7 @@ mod app {
         // set log level
         let game = GamePool::init(&disp);
         init::LateResources{ disp, game, delay, direct:(left, right), 
-            shoot, exti, timer2:player_ammo_timer, rng
+            shoot, exti, timer2:player_ammo_timer, rng, pause,
         }
     }
 
@@ -120,10 +128,11 @@ mod app {
         }
     }
 
-    #[task(binds = EXTI9_5, resources = [shoot, game, exti, timer2], priority = 2)]
-    fn exti9_5(c: exti9_5::Context){
+    #[task(binds = EXTI2, resources = [shoot, game, exti, timer2], priority = 2)]
+    fn exti2(c: exti2::Context){
         let mut game = c.resources.game;
         let mut shoot = c.resources.shoot;
+
         // spawn a bullet
         shoot.lock(|button:&mut ButtonShoot|{
             // clear the interrput first
@@ -136,7 +145,7 @@ mod app {
         });
     }
 
-    #[task(resources = [game, disp, delay], priority = 4)]
+    #[task(resources = [game, disp, delay], priority = 5)]
     fn game_over(c:game_over::Context){
         let mut game = c.resources.game;
         let score = game.lock(|game|{
@@ -149,5 +158,47 @@ mod app {
                 space_war::final_screen(score, display, delay);
             })
         })
+    }
+
+    // pause has lower priority than game over state,
+    // so that you can't pause in game over state only reset
+    // and has higher priority than others so that no other interrupt can pull
+    // out of pause state except pause.
+    #[task(binds = EXTI9_5, resources = [disp, delay, pause], priority = 4)]
+    fn pause(c: pause::Context){
+        let mut disp = c.resources.disp;
+        let mut intr = c.resources.pause;
+
+        intr.lock(| pin:&mut Pause|{
+            pin.clear_interrupt_pending_bit();
+        });
+        static mut PAUSED:bool = true;
+        // SAFETY: safe usage of static local variable
+        let paused = unsafe{
+             &mut PAUSED
+        };
+
+
+        if *paused{
+            disp.lock(|display|{
+                space_war::display_pause(display);
+            });
+            *paused = false;
+        rtic::pend(stm32f7xx_hal::interrupt::EXTI9_5);
+            loop{
+            }
+        } else{
+            defmt::debug!("pause remove");
+            *paused = true;
+        }
+
+        // pause will spawn empty loop so that only pause intr and reset can pull out from it
+    }
+    
+    // after paused this loop will continue, only pause and reset can break this 
+    #[task(priority = 3)]
+    fn empty_loop(_: empty_loop::Context){
+        defmt::debug!("state paused");
+        rtic::pend(stm32f7xx_hal::interrupt::EXTI9_5);
     }
 }
