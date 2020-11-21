@@ -61,7 +61,7 @@ pub struct Asteroid {
     y:i16,
     vel_x:i8,
     vel_y:i8,
-    raw_image: ImageRaw<'static, BinaryColor>,
+    images: [ImageRaw<'static, BinaryColor>;4],
     pub active:bool,
 }
 
@@ -271,12 +271,16 @@ impl Bullet{
 }
 
 impl Asteroid{
-    pub fn new(x:i16, y:i16, sprite: &Sprite, random_val:u32)->Self{
-        let raw_image = ImageRaw::new(sprite.data, sprite.width as u32, sprite.height as u32);
-
+    pub fn new(x:i16, y:i16, sprites: [&Sprite;4], random_val:u32)->Self{
+        let images = [
+            ImageRaw::new(sprites[0].data, sprites[0].width as u32, sprites[0].height as u32),
+            ImageRaw::new(sprites[1].data, sprites[1].width as u32, sprites[1].height as u32),
+            ImageRaw::new(sprites[2].data, sprites[2].width as u32, sprites[2].height as u32),
+            ImageRaw::new(sprites[3].data, sprites[3].width as u32, sprites[3].height as u32),
+        ];
         let vel_x = (random_val % 3)as i8 - 1;
         defmt::debug!("spawn: asteroid at ({:?}, {:?})", x,y);
-        Self{ x, y, vel_x , vel_y:1, raw_image, active:true}
+        Self{ x, y, vel_x , vel_y:1, images , active:true}
     }
     pub fn update(&mut self, screen:&Screen) {
         self.boundary_check(screen);
@@ -285,16 +289,16 @@ impl Asteroid{
     }
     pub fn get_corner_pos(&self)->(i16, i16){
         let (x, y) = self.get_pos();
-        (x + self.raw_image.width() as i16, y + self.raw_image.height()as i16)
+        (x + self.images[0].width() as i16, y + self.images[0].height()as i16)
     }
     fn boundary_check(&mut self, screen:&Screen){
         // check for players boundary check
         let new_pos:i16  = self.x + self.vel_x as i16;
-        if new_pos <= 1  || new_pos + self.raw_image.width() as i16 >= screen.width as i16 {
+        if new_pos <= 1  || new_pos + self.images[0].width() as i16 >= screen.width as i16 {
             self.vel_x = -self.vel_x ;
         }
         if self.y + self.vel_y as i16 >= screen.height() as i16 {
-            self.y = 1 - self.raw_image.height() as i16;
+            self.y = 1 - self.images[0].height() as i16;
         }
     }
 }
@@ -430,7 +434,9 @@ impl CanDraw for Enemy{
 }
 impl CanDraw for Asteroid{
     fn draw(&self, disp:&mut Display) {
-        let image = Image::new( &self.raw_image, Point::new(self.x as i32, self.y as i32) );
+        let index = self.y as usize%4;
+        let raw_image:ImageRaw<BinaryColor> = self.images[index];
+        let image = Image::new( &raw_image, Point::new(self.x as i32, self.y as i32) ) ;
         image.draw(disp).unwrap();
     }
 }

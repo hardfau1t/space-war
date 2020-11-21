@@ -86,12 +86,12 @@ impl GamePool{
                     0
                 },
             };
-            let x_pos = random_val% (self.screen.width() - &ASTEROID_SPRITE.width) as u32;
+            let x_pos = random_val% (self.screen.width() - &ASTEROID_SPRITE_1.width) as u32;
             // spawn asteroid
             let asteroid = Asteroid::new(
                 x_pos as i16,
-                1 - ASTEROID_SPRITE.height as i16,
-                &ASTEROID_SPRITE,
+                1 - ASTEROID_SPRITE_1.height as i16,
+                [&ASTEROID_SPRITE_1, &ASTEROID_SPRITE_2, &ASTEROID_SPRITE_3, &ASTEROID_SPRITE_4],
                 random_val
                 );
             self.asteroids.push(
