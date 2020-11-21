@@ -7,10 +7,9 @@ use embedded_graphics::{
     prelude::*,
     pixelcolor::BinaryColor,
     image::{Image, ImageRaw},
-    fonts::{ Font6x8, Text },
     drawable::Drawable,
     style::Styled,
-    style::{PrimitiveStyle, TextStyle},
+    style::PrimitiveStyle,
     primitives::Rectangle,
 };
 
@@ -272,7 +271,7 @@ impl Bullet{
             }
         } else {
             if new_pos > screen.height() as i16{
-                self.active = false
+                self.active = false;
             }
         }
     }
@@ -302,7 +301,7 @@ impl Asteroid{
             self.vel_x = -self.vel_x ;
         }
         if self.y + self.vel_y as i16 >= screen.height() as i16 {
-            self.active = false;
+            self.y = 1 - self.raw_image.height() as i16;
         }
     }
 }
