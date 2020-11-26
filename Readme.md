@@ -7,4 +7,4 @@ materials used:
 3. switches, resistors, capacitor
 
 It is written in rust using stm32f7xx-hal and embedded graphics crates.
-Example image: !( assets/game_image1.jpeg )
+Example image: ![game_image]( assets/game_image1.jpeg )
