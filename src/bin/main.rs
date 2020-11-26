@@ -89,15 +89,13 @@ mod app {
         disp.set_rotation(DisplayRotation::Rotate270).unwrap();
 
         // initialize timer for player ammunition
-        let mut player_ammo_timer = Timer::tim2(c.device.TIM2, 1.hz(), clk, &mut rcc.apb1 );
-        player_ammo_timer.listen(Event::TimeOut);
-        defmt::debug!("val {:?}",unsafe{ (&*stm32f7xx_hal::pac::TIM2::ptr()).cnt.read().bits() });
-        // panic!("oeuth");
+        let mut fps_timer = Timer::tim2(c.device.TIM2, 1.hz(), clk, &mut rcc.apb1 );
+        fps_timer.listen(Event::TimeOut);
 
         // set log level
         let game = GamePool::init(&disp);
         init::LateResources{ disp, game, delay, direct:(left, right), 
-            shoot, exti, timer2:player_ammo_timer, rng, pause,
+            shoot, exti, timer2:fps_timer, rng, pause,
         }
     }
 
@@ -200,5 +198,19 @@ mod app {
     fn empty_loop(_: empty_loop::Context){
         defmt::debug!("state paused");
         rtic::pend(stm32f7xx_hal::interrupt::EXTI9_5);
+    }
+
+    #[task(binds = TIM2, resources = [shoot, game, exti, timer2], priority = 2)]
+    fn tim2(c: tim2::Context){
+        let mut game = c.resources.game;
+        let mut timer = c.resources.timer2;
+        game.lock(|game:&mut GamePool|{
+            game.set_fps();
+        });
+        // clear interrupt
+        timer.lock(|timer:&mut Timer<TIM2>|{
+            timer.clear_interrupt(Event::TimeOut);
+            timer.unlisten(Event::TimeOut);
+        });
     }
 }

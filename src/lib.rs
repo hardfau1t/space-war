@@ -44,6 +44,8 @@ pub struct GamePool{
     screen: Screen,
     stats: Stats,
     status: bool,
+    fps : u16,
+    fps_ctr: u16,
 }
 impl GamePool{
     // This will return all necessory game objects
@@ -71,7 +73,7 @@ impl GamePool{
         let bullets:Vec<Bullet, U100> = Vec::new();
         let asteroids:Vec<Asteroid, U20> = Vec::new();
         let stats = Stats::new(&screen);
-        Self{player, enemies, bullets, asteroids, screen, stats, status:true}
+        Self{player, enemies, bullets, asteroids, screen, stats, status:true, fps_ctr:0, fps:0}
     }
 
     /// spawns objects like enemies and asteroids, but not bullets
@@ -209,6 +211,9 @@ impl GamePool{
                 self.status = false;
             }
         }
+
+        // update frame counter 
+        self.fps_ctr +=1;
     }
 
     // collects all the elements that are dead and calls burry on them
@@ -282,19 +287,27 @@ impl GamePool{
             .unwrap();
 
         // player score
-        let a:String<U6> = String::from(self.player.player_score);
+        let score:String<U6> = String::from(self.player.player_score);
         Text::new(
-            a.as_str(),
+            score.as_str(),
             Point::new(22, self.screen.height() as i32 + 4)
             )
             .into_styled(TextStyle::new(Font6x8, BinaryColor::On))
             .draw(disp).unwrap();
 
         // player ammo
-        let a:String<U6> = String::from((self.player.bullets.capacity() - self.player.bullets.len()) as i16);
+        let ammo:String<U6> = String::from((self.player.bullets.capacity() - self.player.bullets.len()) as i16);
         Text::new(
-            a.as_str(),
+            ammo.as_str(),
             Point::new(56, self.screen.height() as i32 + 4)
+            )
+            .into_styled(TextStyle::new(Font6x8, BinaryColor::On))
+            .draw(disp).unwrap();
+
+        let fps:String<U6> = String::from(self.fps);
+        Text::new(
+            fps.as_str(),
+            Point::new(1, 1)
             )
             .into_styled(TextStyle::new(Font6x8, BinaryColor::On))
             .draw(disp).unwrap();
@@ -302,6 +315,12 @@ impl GamePool{
     
     pub fn is_ok(&self)->bool{
         !self.status
+    }
+
+    /// resets the fps ctr and sets fps to fps_ctr
+    pub fn set_fps(&mut self){
+        self.fps = self.fps_ctr;
+        self.fps_ctr =0;
     }
 }
 
