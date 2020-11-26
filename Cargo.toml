@@ -7,17 +7,14 @@ default-run = "main"
 
 
 [dependencies.defmt]
-git = "https://github.com/knurling-rs/defmt"
-branch = "main"
+version = "0.1.0"
 
 [dependencies.defmt-rtt]
-git = "https://github.com/knurling-rs/defmt"
-branch = "main"
+version = "0.1.0"
 
 [dependencies.panic-probe]
-git = "https://github.com/knurling-rs/probe-run"
-branch = "main"
-# features = ["print-defmt"]
+version = "0.1.0"
+features = ["print-defmt"]
 
 [dependencies]
 cortex-m = "0.6.4"
