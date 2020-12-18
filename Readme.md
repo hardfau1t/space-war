@@ -16,3 +16,4 @@ Example image: ![game_image]( assets/game_image1.jpeg )
 * timers,
 * stm32f767 interrupts
 * threading
+* using random number generator
